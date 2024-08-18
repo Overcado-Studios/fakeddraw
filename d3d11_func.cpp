@@ -2,6 +2,17 @@
 #include <d3d11_4.h>
 #include <dxgi1_6.h>
 #include <ddraw.h>
+//#include <d3d.h>
+
+typedef struct _D3DVIEWPORT7 {
+    DWORD       dwX;
+    DWORD       dwY;            /* Viewport Top left */
+    DWORD       dwWidth;
+    DWORD       dwHeight;       /* Viewport Dimensions */
+    FLOAT		dvMinZ;         /* Min/max of clip Volume */
+    FLOAT       dvMaxZ;
+} D3DVIEWPORT7, *LPD3DVIEWPORT7;
+
 #include "d3d11_func.h"
 #include "nvdebug.h"
 
@@ -10,6 +21,7 @@
 #define D3D11_SURF_FLAG_FRONTBUFFER		0x1
 #define D3D11_SURF_FLAG_BACKBUFFER		0x2
 #define D3D11_SURF_FLAG_TEXTURE			0x4
+#define D3D11_SURF_FLAG_ZBUFFER			0x8
 
 struct D3D11
 {
@@ -20,6 +32,7 @@ struct D3D11
 	IDirectDraw7*	ddraw;
 	GUID*			ddrawguid;
 	HWND			hwnd;
+	D3D11_VIEWPORT	vp;
 };
 
 struct D3D11Surface
@@ -137,14 +150,16 @@ HRESULT D3D11Func_SetDisplayMode( D3D11* d3d, int width, int height, int bpp, in
 	hr = d3d->swapchain->SetFullscreenState( fullscreen, NULL );
 	if( FAILED( hr ) ) return hr;
 
-	//hr = d3d->swapchain->ResizeTarget( &dmd );
-	//if( FAILED( hr ) ) return hr;
+	hr = d3d->swapchain->ResizeTarget( &dmd );
+	if( FAILED( hr ) ) return hr;
 
-	/*hr =*/ d3d->swapchain->ResizeBuffers( 1 /* We're assuming for now */,
+#if 1
+	hr = d3d->swapchain->ResizeBuffers( 1 /* We're assuming for now */,
 									width, height, 
 									DXGI_FORMAT_B8G8R8A8_UNORM,	/* TODO: Simulate anything lower than 32-bit? */
 									DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE |/* Mode switching and GDI compatibility are a must */
-									( fullscreen ? DXGI_SWAP_CHAIN_FLAG_FULLSCREEN_VIDEO : 0 ) );
+									( fullscreen ? /*DXGI_SWAP_CHAIN_FLAG_FULLSCREEN_VIDEO*/0 : 0 ) );
+#endif
 
 	return hr;
 }
@@ -231,6 +246,8 @@ HRESULT D3D11Func_CreateSurface( D3D11* d3d, D3D11Surface** ppsurface, DDSURFACE
 		}
 		else if( pddsd->ddsCaps.dwCaps & DDSCAPS_BACKBUFFER )
 		{
+			(*ppsurface)->flags |= D3D11_SURF_FLAG_BACKBUFFER;
+
 			HRESULT hr = d3d->swapchain->GetBuffer( 0, __uuidof(ID3D11Texture2D), (void**) &(*ppsurface)->texture );
 			if( FAILED( hr ) ) { DISPDBG_FP( 0, "ERROR: IDXGISwapChain::GetBuffer() returned"<<std::hex<<hr ); return hr; }
 
@@ -253,6 +270,14 @@ HRESULT D3D11Func_CreateSurface( D3D11* d3d, D3D11Surface** ppsurface, DDSURFACE
 				SafeRelease(g_pSurface1);
 			}
 			g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);*/
+		}
+		else if( pddsd->ddsCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN )
+		{
+			(*ppsurface)->flags |= D3D11_SURF_FLAG_TEXTURE;
+		}
+		else if( pddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER )
+		{
+			(*ppsurface)->flags |= D3D11_SURF_FLAG_ZBUFFER;
 		}
 		else
 			return E_INVALIDARG;
@@ -280,6 +305,21 @@ HRESULT D3D11Func_DeleteSurface( D3D11Surface** ppsurface )
 	delete (*ppsurface);
 
 	return S_OK;
+}
+
+HRESULT D3D11Func_SetViewport( D3D11* d3d, D3DVIEWPORT7* vp )
+{
+	D3D11_VIEWPORT vp11;
+	vp11.TopLeftX = vp->dwX;
+	vp11.TopLeftY = vp->dwY;
+	vp11.Width = vp->dwWidth;
+	vp11.Height = vp->dwHeight;
+	vp11.MinDepth = vp->dvMinZ;
+	vp11.MaxDepth = vp->dvMaxZ;
+
+	d3d->context->RSSetViewports( 1, &vp11 );
+
+	return S_OK; 
 }
 
 

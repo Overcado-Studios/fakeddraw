@@ -4,7 +4,9 @@
 #include "pch.h"
 #include "framework.h"
 #include <ddraw.h>
+#include <d3d.h>
 #include "fakeddraw.h"
+#include "faked3d.h"
 #include "vtable.h"
 #include "d3d11_func.h"
 #include "nvdebug.h"
@@ -18,6 +20,9 @@
 #define _RETREF( type ) return ((type*) This->reserved)->RefCount;
 #define _ACCESS( type, ptr ) ((type*) (ptr)->reserved)
 #define ACCESS( type ) ((type*) (This)->reserved)
+
+#define LOGUNIMPL_F		{ DISPDBG_FP(0, "Not implemented!"); NVASSERT(0,__func__<<"(): Not implemented"); return E_FAIL; }
+#define LOGUNIMPL(r)	{ DISPDBG_FP(0, "Not implemented!"); NVASSERT(0,__func__<<"(): Not implemented"); return r; }
 
 NVDebug nvdebug( 0, "fakeddraw_debug.txt" );
 
@@ -40,6 +45,7 @@ struct DDrawClipperPrivate
 {
 	ULONG RefCount;
 	DWORD dwFlags;
+	HWND hWnd;
 };
 
 struct DDrawPalettePrivate
@@ -73,6 +79,14 @@ VOID PVT_IDirectDrawSurfaceFake_Uninitialize( IDirectDrawSurfaceFake** This )
 
 	DDrawSurfaceVtableDelete( This );
 }
+
+VOID PVT_IDirectDrawClipperFake_Uninitialize( IDirectDrawClipperFake** This )
+{
+	delete _ACCESS( DDrawClipperPrivate, (*This) );
+
+	DDrawClipperVtableDelete( This );
+}
+
 
 /*
  * IDirectDrawFake functions 
@@ -113,6 +127,12 @@ HRESULT WINAPI IDirectDrawFake::QueryInterface( REFIID riid, LPVOID FAR * ppvObj
 
 HRESULT WINAPI IDirectDrawFake_QueryInterface( IDirectDrawFake* This, REFIID riid, LPVOID FAR * ppvObj )
 {
+	if( riid == IID_IDirect3D7 )
+	{
+		extern HRESULT PVT_Direct3DFakeCreate( LPVOID* ppvObj, D3D11* d3d );
+		return PVT_Direct3DFakeCreate( ppvObj, ACCESS(DDrawPrivate)->pD3DContext );
+	}
+
 	return E_INVALIDARG;
 }
 
@@ -133,7 +153,7 @@ HRESULT WINAPI IDirectDrawFake::CreateClipper( DWORD dwFlags, IDirectDrawClipper
 
 HRESULT WINAPI IDirectDrawFake_CreateClipper( IDirectDrawFake* This, DWORD dwFlags, IDirectDrawClipperFake** lplpDDClipper, IUnknownFake* pUnkOuter )
 {
-	return E_FAIL;
+	return DirectDrawFakeCreateClipper( dwFlags, lplpDDClipper, pUnkOuter );
 }
 
 HRESULT WINAPI IDirectDrawFake::CreatePalette( DWORD dwFlags, LPPALETTEENTRY lpDDColorArray, IDirectDrawPaletteFake** lplpDDPalette, IUnknownFake* pUnkOuter )
@@ -143,7 +163,7 @@ HRESULT WINAPI IDirectDrawFake::CreatePalette( DWORD dwFlags, LPPALETTEENTRY lpD
 
 HRESULT WINAPI IDirectDrawFake_CreatePalette( IDirectDrawFake* This, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray, IDirectDrawPaletteFake** lplpDDPalette, IUnknownFake* pUnkOuter )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawFake::CreateSurface(LPDDSURFACEDESC2 lpDDSurfaceDesc2, IDirectDrawSurfaceFake** lplpDDSurface, IUnknownFake* pUnkOuter)
@@ -158,8 +178,6 @@ HRESULT WINAPI IDirectDrawFake_CreateSurface( IDirectDrawFake* This, LPDDSURFACE
 	/* Sanity check */
 	if( !lplpDDSurface )
 		return E_INVALIDARG;
-
-	/* TODO: Actually use GUIDs */
 
 	/* Allocate fake DirectDraw interface and initialize Vtable for C */
 	(*lplpDDSurface ) = new IDirectDrawSurfaceFake;
@@ -191,7 +209,7 @@ HRESULT WINAPI IDirectDrawFake::DuplicateSurface( IDirectDrawSurfaceFake* lpDDSu
 }
 HRESULT WINAPI IDirectDrawFake_DuplicateSurface( IDirectDrawFake* This, IDirectDrawSurfaceFake* lpDDSurface, IDirectDrawSurfaceFake** lplpDupDDSurface ) 
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawFake::EnumDisplayModes( DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext, LPDDENUMMODESCALLBACK2 lpEnumModesCallback )
@@ -201,7 +219,7 @@ HRESULT WINAPI IDirectDrawFake::EnumDisplayModes( DWORD dwFlags, LPDDSURFACEDESC
 
 HRESULT WINAPI IDirectDrawFake_EnumDisplayModes( IDirectDrawFake* This, DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext, LPDDENUMMODESCALLBACK2 lpEnumModesCallback )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawFake::EnumSurfaces( DWORD dwFlags, LPDDSURFACEDESC2 lpDDSD2, LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpEnumSurfacesCallback )
@@ -211,7 +229,7 @@ HRESULT WINAPI IDirectDrawFake::EnumSurfaces( DWORD dwFlags, LPDDSURFACEDESC2 lp
 
 HRESULT WINAPI IDirectDrawFake_EnumSurfaces( IDirectDrawFake* This, DWORD dwFlags, LPDDSURFACEDESC2 lpDDSD2, LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpEnumSurfacesCallback )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawFake::EvaluateMode(DWORD dwFlags, DWORD* pSecondsUntilTimeout)
@@ -221,7 +239,7 @@ HRESULT WINAPI IDirectDrawFake::EvaluateMode(DWORD dwFlags, DWORD* pSecondsUntil
 
 HRESULT WINAPI IDirectDrawFake_EvaluateMode( IDirectDrawFake* This, DWORD dwFlags, DWORD *pSecondsUntilTimeout )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawFake::FlipToGDISurface()
@@ -231,7 +249,7 @@ HRESULT WINAPI IDirectDrawFake::FlipToGDISurface()
 
 HRESULT WINAPI IDirectDrawFake_FlipToGDISurface( IDirectDrawFake* This )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawFake::GetAvailableVidMem( LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwTotal, LPDWORD lpdwFree )
@@ -251,7 +269,7 @@ HRESULT WINAPI IDirectDrawFake::GetCaps( LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDH
 
 HRESULT WINAPI IDirectDrawFake_GetCaps( IDirectDrawFake* This, LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawFake::GetDeviceIdentifier( LPDDDEVICEIDENTIFIER2 lpdddi, DWORD dwFlags )
@@ -261,7 +279,7 @@ HRESULT WINAPI IDirectDrawFake::GetDeviceIdentifier( LPDDDEVICEIDENTIFIER2 lpddd
 
 HRESULT WINAPI IDirectDrawFake_GetDeviceIdentifier( IDirectDrawFake* This, LPDDDEVICEIDENTIFIER2 lpdddi, DWORD dwFlags )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawFake::GetDisplayMode( LPDDSURFACEDESC2 lpDDSurfaceDesc2  )
@@ -271,7 +289,10 @@ HRESULT WINAPI IDirectDrawFake::GetDisplayMode( LPDDSURFACEDESC2 lpDDSurfaceDesc
 
 HRESULT WINAPI IDirectDrawFake_GetDisplayMode( IDirectDrawFake* This, LPDDSURFACEDESC2 lpDDSurfaceDesc2  )
 {
-	return E_FAIL;
+	lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount = 32;
+
+	// TODO
+	LOGUNIMPL(DD_OK);
 }
 
 HRESULT WINAPI IDirectDrawFake::GetFourCCCodes( LPDWORD lpNumCodes, LPDWORD lpCodes )
@@ -281,7 +302,7 @@ HRESULT WINAPI IDirectDrawFake::GetFourCCCodes( LPDWORD lpNumCodes, LPDWORD lpCo
 
 HRESULT WINAPI IDirectDrawFake_GetFourCCCodes( IDirectDrawFake* This, LPDWORD lpNumCodes, LPDWORD lpCodes )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawFake::GetGDISurface( IDirectDrawSurfaceFake** lplpGDIDDSurface )
@@ -291,7 +312,7 @@ HRESULT WINAPI IDirectDrawFake::GetGDISurface( IDirectDrawSurfaceFake** lplpGDID
 
 HRESULT WINAPI IDirectDrawFake_GetGDISurface( IDirectDrawFake* This, IDirectDrawSurfaceFake** lplpGDIDDSurface )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawFake::GetMonitorFrequency( LPDWORD lpdwFrequency )
@@ -301,7 +322,7 @@ HRESULT WINAPI IDirectDrawFake::GetMonitorFrequency( LPDWORD lpdwFrequency )
 
 HRESULT WINAPI IDirectDrawFake_GetMonitorFrequency( IDirectDrawFake* This, LPDWORD lpdwFrequency )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawFake::GetScanLine( LPDWORD lpdwScanLine )
@@ -322,7 +343,7 @@ HRESULT WINAPI IDirectDrawFake::GetSurfaceFromDC( HDC hdc, IDirectDrawSurfaceFak
 
 HRESULT WINAPI IDirectDrawFake_GetSurfaceFromDC( IDirectDrawFake* This, HDC hdc, IDirectDrawSurfaceFake** lpDDS )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawFake::GetVerticalBlankStatus( LPBOOL lpbIsInVB )
@@ -343,7 +364,7 @@ HRESULT WINAPI IDirectDrawFake::Initialize( GUID FAR *lpGUID )
 
 HRESULT WINAPI IDirectDrawFake_Initialize( IDirectDrawFake* This, GUID FAR *lpGUID )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawFake::RestoreAllSurfaces()
@@ -353,7 +374,7 @@ HRESULT WINAPI IDirectDrawFake::RestoreAllSurfaces()
 
 HRESULT WINAPI IDirectDrawFake_RestoreAllSurfaces( IDirectDrawFake* This )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawFake::RestoreDisplayMode()
@@ -363,7 +384,7 @@ HRESULT WINAPI IDirectDrawFake::RestoreDisplayMode()
 
 HRESULT WINAPI IDirectDrawFake_RestoreDisplayMode( IDirectDrawFake* This )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawFake::SetCooperativeLevel( HWND hWnd, DWORD dwFlags )
@@ -390,6 +411,7 @@ HRESULT WINAPI IDirectDrawFake_SetDisplayMode( IDirectDrawFake* This, DWORD dwWi
 {
 	GUARD( This, E_FAIL );
 
+
 	HRESULT hr = D3D11Func_SetDisplayMode( ACCESS( DDrawPrivate )->pD3DContext, dwWidth, dwHeight, dwBPP, dwRefreshRate, TRUE );
 	if( FAILED( hr ) )
 		return E_INVALIDARG;
@@ -404,7 +426,7 @@ HRESULT WINAPI IDirectDrawFake::StartModeTest( LPSIZE lpModesToTest, DWORD dwNum
 
 HRESULT WINAPI IDirectDrawFake_StartModeTest( IDirectDrawFake* This, LPSIZE lpModesToTest, DWORD dwNumEntries, DWORD dwFlags )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawFake::TestCooperativeLevel( void )
@@ -414,7 +436,7 @@ HRESULT WINAPI IDirectDrawFake::TestCooperativeLevel( void )
 
 HRESULT WINAPI IDirectDrawFake_TestCooperativeLevel( IDirectDrawFake* This )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawFake::WaitForVerticalBlank( DWORD dwFlags, HANDLE hEvent )
@@ -466,7 +488,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::QueryInterface( REFIID riid, LPVOID FAR *
 
 HRESULT WINAPI IDirectDrawSurfaceFake_QueryInterface( IDirectDrawSurfaceFake* This, REFIID riid, LPVOID FAR * ppvObj )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::AddAttachedSurface( IDirectDrawSurfaceFake* lpDDSAttachedSurface )
@@ -476,7 +498,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::AddAttachedSurface( IDirectDrawSurfaceFak
 
 HRESULT WINAPI IDirectDrawSurfaceFake_AddAttachedSurface( IDirectDrawSurfaceFake* This, IDirectDrawSurfaceFake* lpDDSAttachedSurface )
 {
-	return E_FAIL;
+	LOGUNIMPL(DD_OK);
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::AddOverlayDirtyRect( LPRECT lpRect )
@@ -486,7 +508,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::AddOverlayDirtyRect( LPRECT lpRect )
 
 HRESULT WINAPI IDirectDrawSurfaceFake_AddOverlayDirtyRect( IDirectDrawSurfaceFake* This, LPRECT lpRect )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::Blt( LPRECT lpDestRect, IDirectDrawSurfaceFake* lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx )
@@ -507,7 +529,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::BltBatch( LPDDBLTBATCH lpDDBltBatch, DWOR
 
 HRESULT WINAPI IDirectDrawSurfaceFake_BltBatch( IDirectDrawSurfaceFake* This, LPDDBLTBATCH lpDDBltBatch, DWORD dwCount, DWORD dwFlags )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::BltFast( DWORD dwX,DWORD dwY, IDirectDrawSurfaceFake* lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans )
@@ -517,7 +539,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::BltFast( DWORD dwX,DWORD dwY, IDirectDraw
 
 HRESULT WINAPI IDirectDrawSurfaceFake_BltFast( IDirectDrawSurfaceFake* This, DWORD dwX,DWORD dwY, IDirectDrawSurfaceFake* lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::ChangeUniquenessValue()
@@ -527,7 +549,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::ChangeUniquenessValue()
 
 HRESULT WINAPI IDirectDrawSurfaceFake_ChangeUniquenessValue( IDirectDrawSurfaceFake* This )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::DeleteAttachedSurface( DWORD dwFlags, IDirectDrawSurfaceFake* lpDDSAttachedSurface )
@@ -537,7 +559,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::DeleteAttachedSurface( DWORD dwFlags, IDi
 
 HRESULT WINAPI IDirectDrawSurfaceFake_DeleteAttachedSurface( IDirectDrawSurfaceFake* This, DWORD dwFlags, IDirectDrawSurfaceFake* lpDDSAttachedSurface )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::EnumAttachedSurfaces( LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpEnumSurfacesCallback )
@@ -547,7 +569,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::EnumAttachedSurfaces( LPVOID lpContext, L
 
 HRESULT WINAPI IDirectDrawSurfaceFake_EnumAttachedSurfaces( IDirectDrawSurfaceFake* This, LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpEnumSurfacesCallback )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::EnumOverlayZOrders( DWORD dwFlags, LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpfnCallback )
@@ -557,7 +579,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::EnumOverlayZOrders( DWORD dwFlags, LPVOID
 
 HRESULT WINAPI IDirectDrawSurfaceFake_EnumOverlayZOrders( IDirectDrawSurfaceFake* This, DWORD dwFlags, LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpfnCallback )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::Flip( IDirectDrawSurfaceFake* lpDDSurfaceTargetOverride, DWORD dwFlags )
@@ -578,7 +600,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::FreePrivateData( REFGUID guidTag )
 
 HRESULT WINAPI IDirectDrawSurfaceFake_FreePrivateData( IDirectDrawSurfaceFake* This, REFGUID guidTag )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
  
 HRESULT WINAPI IDirectDrawSurfaceFake::GetAttachedSurface( LPDDSCAPS2 lpDDSCaps, IDirectDrawSurfaceFake* FAR *lplpDDAttachedSurface )
@@ -632,7 +654,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::GetBltStatus( DWORD dwFlags )
 
 HRESULT WINAPI IDirectDrawSurfaceFake_GetBltStatus( IDirectDrawSurfaceFake* This, DWORD dwFlags )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::GetCaps( LPDDSCAPS2 lpDDSCaps )
@@ -642,7 +664,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::GetCaps( LPDDSCAPS2 lpDDSCaps )
 
 HRESULT WINAPI IDirectDrawSurfaceFake_GetCaps( IDirectDrawSurfaceFake* This, LPDDSCAPS2 lpDDSCaps )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::GetClipper( IDirectDrawClipperFake* FAR *lplpDDClipper )
@@ -652,7 +674,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::GetClipper( IDirectDrawClipperFake* FAR *
 
 HRESULT WINAPI IDirectDrawSurfaceFake_GetClipper( IDirectDrawSurfaceFake* This, IDirectDrawClipperFake* FAR *lplpDDClipper )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::GetColorKey( DWORD dwFlags, LPDDCOLORKEY lpDDColorKey )
@@ -662,7 +684,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::GetColorKey( DWORD dwFlags, LPDDCOLORKEY 
 
 HRESULT WINAPI IDirectDrawSurfaceFake_GetColorKey( IDirectDrawSurfaceFake* This, DWORD dwFlags, LPDDCOLORKEY lpDDColorKey )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::GetDC( HDC FAR *lphDC  )
@@ -683,7 +705,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::GetDDInterface( LPVOID FAR *lplpDD )
 
 HRESULT WINAPI IDirectDrawSurfaceFake_GetDDInterface( IDirectDrawSurfaceFake* This, LPVOID FAR *lplpDD )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::GetFlipStatus( DWORD dwFlags )
@@ -693,7 +715,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::GetFlipStatus( DWORD dwFlags )
 
 HRESULT WINAPI IDirectDrawSurfaceFake_GetFlipStatus( IDirectDrawSurfaceFake* This, DWORD dwFlags )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::GetLOD( LPDWORD lpdwLOD )
@@ -703,7 +725,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::GetLOD( LPDWORD lpdwLOD )
 
 HRESULT WINAPI IDirectDrawSurfaceFake_GetLOD( IDirectDrawSurfaceFake* This, LPDWORD lpdwLOD )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::GetOverlayPosition( LPLONG lplX, LPLONG lplY )
@@ -713,7 +735,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::GetOverlayPosition( LPLONG lplX, LPLONG l
 
 HRESULT WINAPI IDirectDrawSurfaceFake_GetOverlayPosition( IDirectDrawSurfaceFake* This, LPLONG lplX, LPLONG lplY )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::GetPalette( IDirectDrawPaletteFake* FAR *lplpDDPalette )
@@ -723,7 +745,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::GetPalette( IDirectDrawPaletteFake* FAR *
 
 HRESULT WINAPI IDirectDrawSurfaceFake_GetPalette( IDirectDrawSurfaceFake* This, IDirectDrawPaletteFake* FAR *lplpDDPalette )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::GetPixelFormat( LPDDPIXELFORMAT lpDDPixelFormat  )
@@ -733,7 +755,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::GetPixelFormat( LPDDPIXELFORMAT lpDDPixel
 
 HRESULT WINAPI IDirectDrawSurfaceFake_GetPixelFormat( IDirectDrawSurfaceFake* This, LPDDPIXELFORMAT lpDDPixelFormat  )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::GetPriority( LPDWORD lpdwPriority)
@@ -743,7 +765,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::GetPriority( LPDWORD lpdwPriority)
 
 HRESULT WINAPI IDirectDrawSurfaceFake_GetPriority( IDirectDrawSurfaceFake* This, LPDWORD lpdwPriority)
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::GetPrivateData( REFGUID guidTag,  LPVOID  lpBuffer, LPDWORD lpcbBufferSize )
@@ -753,7 +775,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::GetPrivateData( REFGUID guidTag,  LPVOID 
 
 HRESULT WINAPI IDirectDrawSurfaceFake_GetPrivateData( IDirectDrawSurfaceFake* This, REFGUID guidTag,  LPVOID  lpBuffer, LPDWORD lpcbBufferSize )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::GetSurfaceDesc( LPDDSURFACEDESC2 lpDDSurfaceDesc  )
@@ -780,7 +802,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::GetUniquenessValue( LPDWORD lpValue )
 
 HRESULT WINAPI IDirectDrawSurfaceFake_GetUniquenessValue( IDirectDrawSurfaceFake* This, LPDWORD lpValue )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::Initialize( IDirectDrawFake* lpDD, LPDDSURFACEDESC2 lpDDSurfaceDesc )
@@ -790,7 +812,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::Initialize( IDirectDrawFake* lpDD, LPDDSU
 
 HRESULT WINAPI IDirectDrawSurfaceFake_Initialize( IDirectDrawSurfaceFake* This, IDirectDrawFake* lpDD, LPDDSURFACEDESC2 lpDDSurfaceDesc )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::IsLost()
@@ -811,7 +833,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::Lock( LPRECT lpDestRect, LPDDSURFACEDESC2
 
 HRESULT WINAPI IDirectDrawSurfaceFake_Lock( IDirectDrawSurfaceFake* This, LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc, DWORD dwFlags, HANDLE hEvent )
 {
-	return E_FAIL;
+	LOGUNIMPL(S_OK);
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::PageLock( DWORD dwFlags )
@@ -821,7 +843,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::PageLock( DWORD dwFlags )
 
 HRESULT WINAPI IDirectDrawSurfaceFake_PageLock( IDirectDrawSurfaceFake* This, DWORD dwFlags )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::PageUnlock( DWORD dwFlags )
@@ -831,7 +853,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::PageUnlock( DWORD dwFlags )
 
 HRESULT WINAPI IDirectDrawSurfaceFake_PageUnlock( IDirectDrawSurfaceFake* This, DWORD dwFlags )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::ReleaseDC( HDC hDC )
@@ -873,7 +895,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::SetColorKey( DWORD dwFlags, LPDDCOLORKEY 
 
 HRESULT WINAPI IDirectDrawSurfaceFake_SetColorKey( IDirectDrawSurfaceFake* This, DWORD dwFlags, LPDDCOLORKEY lpDDColorKey )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::SetLOD( DWORD dwMaxLOD )
@@ -883,7 +905,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::SetLOD( DWORD dwMaxLOD )
 
 HRESULT WINAPI IDirectDrawSurfaceFake_SetLOD( IDirectDrawSurfaceFake* This, DWORD dwMaxLOD )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::SetOverlayPosition( LONG lX, LONG lY )
@@ -893,7 +915,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::SetOverlayPosition( LONG lX, LONG lY )
 
 HRESULT WINAPI IDirectDrawSurfaceFake_SetOverlayPosition( IDirectDrawSurfaceFake* This, LONG lX, LONG lY )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::SetPalette( IDirectDrawPaletteFake* lpDDPalette )
@@ -903,7 +925,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::SetPalette( IDirectDrawPaletteFake* lpDDP
 
 HRESULT WINAPI IDirectDrawSurfaceFake_SetPalette( IDirectDrawSurfaceFake* This, IDirectDrawPaletteFake* lpDDPalette )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::SetPriority( DWORD dwPriority )
@@ -913,7 +935,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::SetPriority( DWORD dwPriority )
 
 HRESULT WINAPI IDirectDrawSurfaceFake_SetPriority( IDirectDrawSurfaceFake* This, DWORD dwPriority )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::SetPrivateData( REFGUID guidTag, LPVOID  lpData, DWORD   cbSize, DWORD   dwFlags )
@@ -923,7 +945,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::SetPrivateData( REFGUID guidTag, LPVOID  
 
 HRESULT WINAPI IDirectDrawSurfaceFake_SetPrivateData( IDirectDrawSurfaceFake* This, REFGUID guidTag, LPVOID  lpData, DWORD   cbSize, DWORD   dwFlags )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::SetSurfaceDesc( LPDDSURFACEDESC2 lpddsd2, DWORD dwFlags )
@@ -933,7 +955,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::SetSurfaceDesc( LPDDSURFACEDESC2 lpddsd2,
 
 HRESULT WINAPI IDirectDrawSurfaceFake_SetSurfaceDesc( IDirectDrawSurfaceFake* This, LPDDSURFACEDESC2 lpddsd2, DWORD dwFlags )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::Unlock( LPRECT lpRect )
@@ -943,7 +965,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::Unlock( LPRECT lpRect )
 
 HRESULT WINAPI IDirectDrawSurfaceFake_Unlock( IDirectDrawSurfaceFake* This, LPRECT lpRect )
 {
-	return E_FAIL;
+	LOGUNIMPL(DD_OK);
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::UpdateOverlay( LPRECT lpSrcRect, IDirectDrawSurfaceFake* lpDDDestSurface, LPRECT lpDestRect, DWORD dwFlags, LPDDOVERLAYFX lpDDOverlayFx )
@@ -953,7 +975,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::UpdateOverlay( LPRECT lpSrcRect, IDirectD
 
 HRESULT WINAPI IDirectDrawSurfaceFake_UpdateOverlay( IDirectDrawSurfaceFake* This, LPRECT lpSrcRect, IDirectDrawSurfaceFake* lpDDDestSurface, LPRECT lpDestRect, DWORD dwFlags, LPDDOVERLAYFX lpDDOverlayFx )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::UpdateOverlayDisplay( DWORD dwFlags )
@@ -963,7 +985,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake::UpdateOverlayDisplay( DWORD dwFlags )
 
 HRESULT WINAPI IDirectDrawSurfaceFake_UpdateOverlayDisplay( IDirectDrawSurfaceFake* This, DWORD dwFlags )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::UpdateOverlayZOrder( DWORD dwFlags, IDirectDrawSurfaceFake* lpDDSReference )
@@ -973,26 +995,45 @@ HRESULT WINAPI IDirectDrawSurfaceFake::UpdateOverlayZOrder( DWORD dwFlags, IDire
 
 HRESULT WINAPI IDirectDrawSurfaceFake_UpdateOverlayZOrder( IDirectDrawSurfaceFake* This, DWORD dwFlags, IDirectDrawSurfaceFake* lpDDSReference )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 
 /*
  * IDirectDrawClipperFake 
  */
-//ULONG WINAPI IDirectDrawClipperFake::AddRef()
-//{
-//	return IDirectDrawClipperFake_AddRef(this);
-//}
+ULONG WINAPI IDirectDrawClipperFake::AddRef()
+{
+	return IDirectDrawClipperFake_AddRef(this);
+}
 
 ULONG WINAPI IDirectDrawClipperFake_AddRef( IDirectDrawClipperFake* This )
 {
-	return 0;
+	GUARD( This, 0 );
+	_INCREF( DDrawClipperPrivate );
+	_RETREF( DDrawClipperPrivate );;
+}
+
+ULONG WINAPI IDirectDrawClipperFake::Release() 
+{
+	ULONG refcount = IDirectDrawClipperFake_Release( this );
+	if( refcount < 1 )
+		delete this;
+
+	return refcount;
 }
 
 ULONG WINAPI IDirectDrawClipperFake_Release( IDirectDrawClipperFake* This )
 {
-	return 0;
+	GUARD( This, 0 );
+	ULONG ref = _GETREF( DDrawClipperPrivate );
+	_DECREF( DDrawClipperPrivate, PVT_IDirectDrawClipperFake_Uninitialize );
+	_RETREF( DDrawClipperPrivate );
+}
+
+HRESULT WINAPI IDirectDrawClipperFake::QueryInterface( REFIID riid, LPVOID* ppvObj )
+{
+	return IDirectDrawClipperFake_QueryInterface( this, riid, ppvObj );
 }
 
 HRESULT WINAPI IDirectDrawClipperFake_QueryInterface( IDirectDrawClipperFake* This, REFIID riid, LPVOID FAR * ppvObj )
@@ -1000,34 +1041,72 @@ HRESULT WINAPI IDirectDrawClipperFake_QueryInterface( IDirectDrawClipperFake* Th
 	return E_INVALIDARG;
 }
 
+HRESULT WINAPI IDirectDrawClipperFake::GetClipList( LPRECT lpRect, LPRGNDATA lpClipList, LPDWORD lpdwSize )
+{
+	return IDirectDrawClipperFake_GetClipList( this, lpRect, lpClipList, lpdwSize );
+}
+
 HRESULT WINAPI IDirectDrawClipperFake_GetClipList( IDirectDrawClipperFake* This, LPRECT lpRect, LPRGNDATA lpClipList, LPDWORD lpdwSize )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
+}
+
+HRESULT WINAPI IDirectDrawClipperFake::GetHWnd( HWND FAR* lphWnd )
+{
+	return IDirectDrawClipperFake_GetHWnd( this, lphWnd );
 }
 
 HRESULT WINAPI IDirectDrawClipperFake_GetHWnd( IDirectDrawClipperFake* This, HWND FAR *lphWnd )
 {
-	return E_FAIL;
+	GUARD( This, E_FAIL );
+
+	*lphWnd = ACCESS( DDrawClipperPrivate )->hWnd;
+	
+	return DD_OK;
+}
+
+HRESULT WINAPI IDirectDrawClipperFake::Initialize( IDirectDrawFake* lpDD, DWORD dwFlags )
+{
+	return IDirectDrawClipperFake_Initialize( this, lpDD, dwFlags );
 }
 
 HRESULT WINAPI IDirectDrawClipperFake_Initialize( IDirectDrawClipperFake* This, IDirectDrawFake* lpDD, DWORD dwFlags )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
+}
+
+HRESULT WINAPI IDirectDrawClipperFake::IsClipListChanged( BOOL FAR *lpbChanged )
+{
+	return IDirectDrawClipperFake_IsClipListChanged( this, lpbChanged );
 }
 
 HRESULT WINAPI IDirectDrawClipperFake_IsClipListChanged( IDirectDrawClipperFake* This, BOOL FAR *lpbChanged )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
+}
+
+HRESULT WINAPI IDirectDrawClipperFake::SetClipList( LPRGNDATA lpClipList, DWORD dwFlags )
+{
+	return  IDirectDrawClipperFake_SetClipList( this, lpClipList, dwFlags );
 }
 
 HRESULT WINAPI IDirectDrawClipperFake_SetClipList( IDirectDrawClipperFake* This, LPRGNDATA lpClipList, DWORD dwFlags )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
+}
+
+HRESULT WINAPI IDirectDrawClipperFake::SetHWnd( DWORD dwFlags, HWND hWnd )
+{ 
+	return IDirectDrawClipperFake_SetHWnd( this, dwFlags, hWnd );
 }
 
 HRESULT WINAPI IDirectDrawClipperFake_SetHWnd( IDirectDrawClipperFake* This, DWORD dwFlags, HWND hWnd )
 {
-	return E_FAIL;
+	GUARD( This, E_FAIL );
+
+	ACCESS( DDrawClipperPrivate )->hWnd = hWnd;
+
+	return DD_OK;
 }
 
 
@@ -1051,22 +1130,22 @@ HRESULT WINAPI IDirectDrawPaletteFake_QueryInterface( IDirectDrawPaletteFake* Th
 
 HRESULT WINAPI IDirectDrawPaletteFake_GetCaps( IDirectDrawPaletteFake* This, LPDWORD lpdwCaps )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawPaletteFake_GetEntries( IDirectDrawPaletteFake* This, DWORD dwFlags, DWORD dwBase, DWORD dwNumEntries, LPPALETTEENTRY lpEntries )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawPaletteFake_Initialize(  IDirectDrawPaletteFake* This, IDirectDrawFake* lpDD, DWORD dwFlags, LPPALETTEENTRY lpDDColorTable )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 HRESULT WINAPI IDirectDrawPaletteFake_SetEntries( IDirectDrawPaletteFake* This, DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries )
 {
-	return E_FAIL;
+	LOGUNIMPL_F;
 }
 
 
@@ -1111,4 +1190,30 @@ HRESULT WINAPI DirectDrawFakeCreateEx( GUID FAR* lpGuid, LPVOID* lplpDD, REFIID 
 	return DirectDrawFakeCreate( lpGuid, (IDirectDrawFake**) lplpDD, pUnkOuter );	// Laziness...
 }
 
-HRESULT WINAPI DirectDrawFakeCreateClipper( DWORD dwFlags, IDirectDrawClipperFake FAR **lplpDDClipper, IUnknownFake FAR *pUnkOuter );
+HRESULT WINAPI DirectDrawFakeCreateClipper( DWORD dwFlags, IDirectDrawClipperFake FAR **lplpDDClipper, IUnknownFake FAR *pUnkOuter )
+{
+	/* Sanity check */
+	if( !lplpDDClipper )
+		return E_INVALIDARG;
+
+	/* TODO: Actually use GUIDs */
+
+	/* Allocate fake DirectDraw interface and initialize Vtable for C */
+	(*lplpDDClipper ) = new IDirectDrawClipperFake;
+	if( !(*lplpDDClipper ) )
+		return E_OUTOFMEMORY;
+
+	if( !DDrawClipperVtableCreate( lplpDDClipper ) )
+		return E_OUTOFMEMORY;
+
+	(*lplpDDClipper)->reserved = new DDrawPrivate;
+	if( !(*lplpDDClipper)->reserved )
+		return E_OUTOFMEMORY;
+
+	memset( (*lplpDDClipper)->reserved, 0, sizeof( DDrawPrivate ) );
+
+	_ACCESS( DDrawClipperPrivate, (*lplpDDClipper ) )->hWnd = NULL;
+	_ACCESS( DDrawClipperPrivate, (*lplpDDClipper) )->RefCount = 1;
+
+	return DD_OK;
+}

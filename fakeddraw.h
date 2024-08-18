@@ -179,6 +179,7 @@ FAKEINTERFACE( IDirectDrawSurfaceFake, IUnknownFake )
 /*
  * IDirectDrawClipperFake
  */
+#if 0
 typedef struct IDirectDrawClipperFake
 #ifdef __cplusplus
 	: public IUnknownFake
@@ -193,6 +194,26 @@ typedef struct IDirectDrawClipperFake
 }IDirectDrawClipperFake;
 typedef struct IDirectDrawClipperFakeVtbl IDirectDrawClipperFakeVtbl;
 struct IDirectDrawClipperFakeVtbl;
+#else
+#undef INTERFACE
+#define INTERFACE IDirectDrawClipperFake
+DECLARE_INTERFACE_( IDirectDrawClipperFake, IUnknownFake )
+{
+    /*** IUnknown methods ***/
+    STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
+    STDMETHOD_(ULONG,AddRef) (THIS);
+    STDMETHOD_(ULONG,Release) (THIS);
+    /*** IDirectDrawClipper methods ***/
+    STDMETHOD(GetClipList)(THIS_ LPRECT, LPRGNDATA, LPDWORD);
+    STDMETHOD(GetHWnd)(THIS_ HWND FAR *);
+    STDMETHOD(Initialize)(THIS_ IDirectDrawFake*, DWORD) ;
+    STDMETHOD(IsClipListChanged)(THIS_ BOOL FAR *);
+    STDMETHOD(SetClipList)(THIS_ LPRGNDATA,DWORD) ;
+    STDMETHOD(SetHWnd)(THIS_ DWORD, HWND ) ;
+};
+
+#endif
+
 
 
 /*

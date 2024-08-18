@@ -67,6 +67,10 @@
 #define __KE_FUNCTION__ __FUNCSIG__
 #endif
 
+#ifndef __func__
+#define __func__ __FUNCSIG__
+#endif
+
 
 static const DWORD MaxDebugFileSize = 100000;
 
@@ -199,17 +203,16 @@ do																			\
 	{																		\
 		std::ostringstream strOut;											\
 		strOut << b << "\nAt: " << __FILE__ << ", " << __LINE__;			\
-        OutputDebugString(strOut.str().c_str() );                           \
-        __trap;                                                             \
-		/*int Ret = MessageBoxEx(NULL, strOut.str().c_str(), "NVASSERT", MB_ABORTRETRYIGNORE, MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ));	\
+        OutputDebugStringA(strOut.str().c_str() );                            \
+		int Ret = MessageBoxExA(NULL, strOut.str().c_str(), /*_T(*/"NVASSERT"/*)*/, MB_ABORTRETRYIGNORE, MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ));	\
 		if (Ret == IDIGNORE)			\
 		{								\
 			bIgnore = true;				\
 		}								\
 		else if (Ret == IDABORT)		\
 		{								\
-            __trap;                     \
-		}*/								\
+            __debugbreak();             \
+		}								\
 	}									\
 } while (0)
 

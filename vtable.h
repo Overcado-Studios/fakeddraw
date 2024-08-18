@@ -116,12 +116,136 @@ HRESULT WINAPI IDirectDrawPaletteFake_Initialize(  IDirectDrawPaletteFake* This,
 HRESULT WINAPI IDirectDrawPaletteFake_SetEntries( IDirectDrawPaletteFake* This, DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries );
 
 
+/*
+ * IDirect3DFake 
+ */
+HRESULT WINAPI IDirect3DFake_QueryInterface( IDirect3DFake* This, REFIID riid, LPVOID FAR* ppvObj );
+ULONG WINAPI IDirect3DFake_AddRef( IDirect3DFake* This );
+ULONG WINAPI IDirect3DFake_Release( IDirect3DFake* This );
+HRESULT WINAPI IDirect3DFake_CreateDevice( IDirect3DFake* This, REFCLSID rclsid, IDirectDrawSurfaceFake* lpDDS, IDirect3DDeviceFake** lplpD3DDevice );
+HRESULT WINAPI IDirect3DFake_CreateVertexBuffer( IDirect3DFake* This, LPD3DVERTEXBUFFERDESC lpVBDesc, IDirect3DVertexBufferFake** lplpD3DVertexBuffer, DWORD dwFlags );
+HRESULT WINAPI IDirect3DFake_EnumDevices( IDirect3DFake* This, LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallback, LPVOID lpUserArg );
+HRESULT WINAPI IDirect3DFake_EnumZBufferFormats( IDirect3DFake* This, REFCLSID riidDevice, LPD3DENUMPIXELFORMATSCALLBACK lpEnumCallback, LPVOID lpContext ); 
+HRESULT WINAPI IDirect3DFake_EvictManagedTextures( IDirect3DFake* This ); 
+
+
+/*
+ * IDirect3DDeviceFake functions
+ */
+
+HRESULT WINAPI IDirect3DDeviceFake_QueryInterface( IDirect3DDeviceFake* This, REFIID riid, LPVOID FAR* ppvObj );
+ULONG WINAPI IDirect3DDeviceFake_AddRef( IDirect3DDeviceFake* This );
+ULONG WINAPI IDirect3DDeviceFake_Release( IDirect3DDeviceFake* This );
+HRESULT WINAPI IDirect3DDeviceFake_ApplyStateBlock( IDirect3DDeviceFake* This,   DWORD dwBlockHandle ); 
+HRESULT WINAPI IDirect3DDeviceFake_BeginScene( IDirect3DDeviceFake* This );
+HRESULT WINAPI IDirect3DDeviceFake_BeginStateBlock( IDirect3DDeviceFake* This );
+HRESULT WINAPI IDirect3DDeviceFake_CaptureStateBlock( IDirect3DDeviceFake* This,  DWORD dwBlockHandle );
+HRESULT WINAPI IDirect3DDeviceFake_CreateStateBlock( IDirect3DDeviceFake* This, D3DSTATEBLOCKTYPE d3dsbType, LPDWORD lpdwBlockHandle );
+HRESULT WINAPI IDirect3DDeviceFake_Clear( IDirect3DDeviceFake* This,  DWORD     dwCount,     LPD3DRECT lpRects,   
+  DWORD     dwFlags,     DWORD     dwColor,     D3DVALUE  dvZ,       
+  DWORD     dwStencil  );
+HRESULT WINAPI IDirect3DDeviceFake_ComputeSphereVisibility( IDirect3DDeviceFake* This,   LPD3DVECTOR lpCenters,         
+  LPD3DVALUE  lpRadii,             DWORD       dwNumSpheres,      
+  DWORD       dwFlags,             LPDWORD     lpdwReturnValues   ); 
+HRESULT WINAPI IDirect3DDeviceFake_DeleteStateBlock ( IDirect3DDeviceFake* This,  DWORD dwBlockHandle  ); 
+HRESULT WINAPI IDirect3DDeviceFake_DrawIndexedPrimitive( IDirect3DDeviceFake* This,  D3DPRIMITIVETYPE d3dptPrimitiveType,  
+  DWORD  dwVertexTypeDesc,                LPVOID lpvVertices,                   
+  DWORD  dwVertexCount,                   LPWORD lpwIndices,                    
+  DWORD  dwIndexCount,                    DWORD  dwFlags                        
+);
+HRESULT WINAPI IDirect3DDeviceFake_DrawIndexedPrimitiveStrided( IDirect3DDeviceFake* This,  D3DPRIMITIVETYPE d3dptPrimitiveType,  
+  DWORD  dwVertexTypeDesc,              
+  LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray,  
+  DWORD  dwVertexCount,                   LPWORD lpwIndices,                    
+  DWORD  dwIndexCount,                    DWORD  dwFlags                        
+);
+HRESULT WINAPI IDirect3DDeviceFake_DrawIndexedPrimitiveVB( IDirect3DDeviceFake* This,  D3DPRIMITIVETYPE        d3dptPrimitiveType,
+  IDirect3DVertexBufferFake* lpd3dVertexBuffer,  DWORD  dwStartVertex,
+  DWORD  dwNumVertices,  LPWORD lpwIndices,  DWORD  dwIndexCount,
+  DWORD  dwFlags);
+HRESULT WINAPI IDirect3DDeviceFake_DrawPrimitive( IDirect3DDeviceFake* This,  D3DPRIMITIVETYPE dptPrimitiveType,  
+  DWORD  dwVertexTypeDesc,              LPVOID lpvVertices,                 
+  DWORD  dwVertexCount,                 DWORD  dwFlags                      );
+HRESULT WINAPI IDirect3DDeviceFake_DrawPrimitiveStrided( IDirect3DDeviceFake* This,  D3DPRIMITIVETYPE dptPrimitiveType,  
+  DWORD  dwVertexTypeDesc,            
+  LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray,  
+  DWORD  dwVertexCount,                 DWORD  dwFlags                      );
+HRESULT WINAPI IDirect3DDeviceFake_DrawPrimitiveVB( IDirect3DDeviceFake* This,   D3DPRIMITIVETYPE        d3dptPrimitiveType,
+  IDirect3DVertexBufferFake* lpd3dVertexBuffer,  DWORD dwStartVertex,
+  DWORD dwNumVertices,  DWORD dwFlags); 
+HRESULT WINAPI IDirect3DDeviceFake_EndScene( IDirect3DDeviceFake* This );
+HRESULT WINAPI IDirect3DDeviceFake_EndStateBlock( IDirect3DDeviceFake* This,   LPDWORD lpdwBlockHandle ); 
+HRESULT WINAPI IDirect3DDeviceFake_EnumTextureFormats( IDirect3DDeviceFake* This,  LPD3DENUMPIXELFORMATSCALLBACK lpd3dEnumPixelProc, LPVOID lpArg );
+HRESULT WINAPI IDirect3DDeviceFake_GetCaps( IDirect3DDeviceFake* This,  LPD3DDEVICEDESC7 lpD3DDevDesc );
+HRESULT WINAPI IDirect3DDeviceFake_GetClipPlane( IDirect3DDeviceFake* This,   DWORD dwIndex,   D3DVALUE* pPlaneEquation ); 
+HRESULT WINAPI IDirect3DDeviceFake_GetClipStatus( IDirect3DDeviceFake* This,  LPD3DCLIPSTATUS lpD3DClipStatus );
+HRESULT WINAPI IDirect3DDeviceFake_GetDirect3D( IDirect3DDeviceFake* This,  IDirect3DFake* *lplpD3D );
+HRESULT WINAPI IDirect3DDeviceFake_GetInfo( IDirect3DDeviceFake* This,   DWORD  dwDevInfoID,   LPVOID pDevInfoStruct,   DWORD  dwSize ); 
+HRESULT WINAPI IDirect3DDeviceFake_GetLight( IDirect3DDeviceFake* This,   DWORD dwLightIndex,   LPD3DLIGHT7 lpLight ); 
+HRESULT WINAPI IDirect3DDeviceFake_GetLightEnable( IDirect3DDeviceFake* This,   DWORD dwLightIndex,  BOOL* pbEnable ); 
+HRESULT WINAPI IDirect3DDeviceFake_GetMaterial( IDirect3DDeviceFake* This,   LPD3DMATERIAL7 lpMaterial ); 
+HRESULT WINAPI IDirect3DDeviceFake_GetRenderState( IDirect3DDeviceFake* This,  D3DRENDERSTATETYPE dwRenderStateType,  LPDWORD lpdwRenderState );
+HRESULT WINAPI IDirect3DDeviceFake_GetRenderTarget( IDirect3DDeviceFake* This,  IDirectDrawSurfaceFake** lplpRenderTarget  );
+HRESULT WINAPI IDirect3DDeviceFake_GetStateData( IDirect3DDeviceFake* This,   DWORD dwState,   LPVOID* lplpStateData );
+HRESULT WINAPI IDirect3DDeviceFake_GetTexture( IDirect3DDeviceFake* This,   DWORD dwStage,  IDirectDrawSurfaceFake** lplpTexture ); 
+HRESULT WINAPI IDirect3DDeviceFake_GetTextureStageState( IDirect3DDeviceFake* This,  DWORD   dwStage, D3DTEXTURESTAGESTATETYPE dwState,  LPDWORD lpdwValue ); 
+HRESULT WINAPI IDirect3DDeviceFake_GetTransform( IDirect3DDeviceFake* This,  D3DTRANSFORMSTATETYPE dtstTransformStateType,  LPD3DMATRIX lpD3DMatrix );
+HRESULT WINAPI IDirect3DDeviceFake_GetViewport( IDirect3DDeviceFake* This,  LPD3DVIEWPORT7 lpViewport ); 
+HRESULT WINAPI IDirect3DDeviceFake_LightEnable( IDirect3DDeviceFake* This,   DWORD dwLightIndex,  BOOL bEnable ); 
+HRESULT WINAPI IDirect3DDeviceFake_Load( IDirect3DDeviceFake* This,   IDirectDrawSurfaceFake* lpDestTex,   LPPOINT lpDestPoint, IDirectDrawSurfaceFake* lpSrcTex, LPRECT lprcSrcRect, DWORD dwFlags );
+HRESULT WINAPI IDirect3DDeviceFake_MultiplyTransform( IDirect3DDeviceFake* This,  D3DTRANSFORMSTATETYPE dtstTransformStateType, LPD3DMATRIX lpD3DMatrix );
+HRESULT WINAPI IDirect3DDeviceFake_PreLoad( IDirect3DDeviceFake* This,  IDirectDrawSurfaceFake* lpddsTexture );
+HRESULT WINAPI IDirect3DDeviceFake_SetClipPlane( IDirect3DDeviceFake* This,   DWORD dwIndex,   D3DVALUE* pPlaneEquation ); 
+HRESULT WINAPI IDirect3DDeviceFake_SetClipStatus( IDirect3DDeviceFake* This,  LPD3DCLIPSTATUS lpD3DClipStatus  );
+HRESULT WINAPI IDirect3DDeviceFake_SetLight( IDirect3DDeviceFake* This,   DWORD dwLightIndex,   LPD3DLIGHT7 lpLight); 
+HRESULT WINAPI IDirect3DDeviceFake_SetMaterial( IDirect3DDeviceFake* This,   LPD3DMATERIAL7 lpMaterial ); 
+HRESULT WINAPI IDirect3DDeviceFake_SetRenderState( IDirect3DDeviceFake* This,  D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState );
+HRESULT WINAPI IDirect3DDeviceFake_SetRenderTarget( IDirect3DDeviceFake* This,  IDirectDrawSurfaceFake* lpNewRenderTarget, DWORD dwFlags );
+HRESULT WINAPI IDirect3DDeviceFake_SetStateData( IDirect3DDeviceFake* This,   DWORD dwState,   LPVOID lpStateData );
+HRESULT WINAPI IDirect3DDeviceFake_SetTexture( IDirect3DDeviceFake* This, DWORD dwStage, IDirectDrawSurfaceFake* lpTexture ); 
+HRESULT WINAPI IDirect3DDeviceFake_SetTextureStageState( IDirect3DDeviceFake* This, DWORD dwStage, D3DTEXTURESTAGESTATETYPE dwState, DWORD dwValue ); 
+HRESULT WINAPI IDirect3DDeviceFake_SetTransform( IDirect3DDeviceFake* This,  D3DTRANSFORMSTATETYPE dtstTransformStateType, LPD3DMATRIX lpD3DMatrix );
+HRESULT WINAPI IDirect3DDeviceFake_SetViewport( IDirect3DDeviceFake* This,  LPD3DVIEWPORT7 lpViewport ); 
+HRESULT WINAPI IDirect3DDeviceFake_ValidateDevice( IDirect3DDeviceFake* This,  LPDWORD lpdwPasses );
+
+/*
+ * IDirect3DVertexBufferFake functions
+ */
+HRESULT WINAPI IDirect3DVertexBufferFake_QueryInterface( IDirect3DVertexBufferFake* This, REFIID riid, LPVOID FAR* ppvObj );
+ULONG WINAPI IDirect3DVertexBufferFake_AddRef( IDirect3DVertexBufferFake* This );
+ULONG WINAPI IDirect3DVertexBufferFake_Release( IDirect3DVertexBufferFake* This );
+HRESULT WINAPI IDirect3DVertexBufferFake_GetVertexBufferDesc( IDirect3DVertexBufferFake* This,  LPD3DVERTEXBUFFERDESC lpVBDesc );
+HRESULT WINAPI IDirect3DVertexBufferFake_Lock( IDirect3DVertexBufferFake* This, DWORD   dwFlags,    LPVOID* lplpData,   LPDWORD lpdwSize  ) ;
+HRESULT WINAPI IDirect3DVertexBufferFake_Optimize( IDirect3DVertexBufferFake* This,  LPDIRECT3DDEVICE7 lpD3DDevice,  DWORD dwFlags );
+HRESULT WINAPI IDirect3DVertexBufferFake_ProcessVertices( IDirect3DVertexBufferFake* This,  DWORD dwVertexOp,   DWORD dwDestIndex, 
+  DWORD dwCount,   LPDIRECT3DVERTEXBUFFER7 lpSrcBuffer,   DWORD dwSrcIndex, 
+  LPDIRECT3DDEVICE7       lpD3DDevice,   DWORD dwFlags);
+HRESULT WINAPI IDirect3DVertexBufferFake_ProcessVerticesStrided( IDirect3DVertexBufferFake* This,  DWORD dwVertexOp,   DWORD dwDestIndex, 
+  DWORD dwCount,   LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, 
+  DWORD dwSrcIndex,   LPDIRECT3DDEVICE7 lpD3DDevice,   DWORD dwFlags);
+HRESULT WINAPI IDirect3DVertexBufferFake_Unlock( IDirect3DVertexBufferFake* This );
+
 
 int DDrawVtableCreate( IDirectDrawFake** lplpDDraw );
 void DDrawVtableDelete( IDirectDrawFake** lplpDDraw );
 
 int DDrawSurfaceVtableCreate( IDirectDrawSurfaceFake** lplpDDrawSurface );
 void DDrawSurfaceVtableDelete( IDirectDrawSurfaceFake** lplpDDrawSurface );
+
+int DDrawClipperVtableCreate( IDirectDrawClipperFake** lplpDDrawClipper );
+void DDrawClipperVtableDelete( IDirectDrawClipperFake** lplpDDrawClipper );
+
+int DDrawPaletteVtableCreate( IDirectDrawPaletteFake** lplpDDrawPalette );
+void DDrawPaletteVtableDelete( IDirectDrawPaletteFake** lplpDDrawPalette );
+
+int D3DVtableCreate( IDirect3DFake** lplpD3D );
+void D3DVtableDelete( IDirect3DFake** lplpD3D );
+
+int D3DDeviceVtableCreate( IDirect3DDeviceFake** lplpD3DDevice );
+void D3DDeviceVtableDelete( IDirect3DDeviceFake** lplpD3DDevice );
+
+int D3DVertexBufferVtableCreate( IDirect3DVertexBufferFake** lplpD3DVB );
+void D3DVertexBufferVtableDelete( IDirect3DVertexBufferFake** lplpD3DVB );
 
 #ifdef __cplusplus
 }

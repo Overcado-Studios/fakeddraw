@@ -1,6 +1,8 @@
 #include "framework.h"
 #include <ddraw.h>
+#include <d3d.h>
 #include "fakeddraw.h"
+#include "faked3d.h"
 
 #include "vtable.h"
 
@@ -103,19 +105,19 @@
 /*
  * Fake DirectDraw Clipper interface vtables 
  */
-struct IDirectDrawClipperFakeVtbl
-{
-	HRESULT (WINAPI* QueryInterface)( IDirectDrawClipperFake*, REFIID, LPVOID );
-	ULONG (WINAPI* AddRef)( IDirectDrawClipperFake* );
-	ULONG (WINAPI* Release)( IDirectDrawClipperFake* );
-
-	HRESULT (WINAPI* GetClipList)( IDirectDrawClipperFake*, LPRECT, LPRGNDATA, LPDWORD );
-	HRESULT (WINAPI* GetHWnd)( IDirectDrawClipperFake* , HWND* );
-	HRESULT (WINAPI* Initialize)( IDirectDrawClipperFake* , IDirectDrawFake*, DWORD );
-	HRESULT (WINAPI* IsClipListChanged)( IDirectDrawClipperFake* , BOOL* );
-	HRESULT (WINAPI* SetClipList)( IDirectDrawClipperFake*, LPRGNDATA, DWORD );
-	HRESULT (WINAPI* SetHWnd)( IDirectDrawClipperFake*, DWORD, HWND );
-};
+//struct IDirectDrawClipperFakeVtbl
+//{
+//	HRESULT (WINAPI* QueryInterface)( IDirectDrawClipperFake*, REFIID, LPVOID );
+//	ULONG (WINAPI* AddRef)( IDirectDrawClipperFake* );
+//	ULONG (WINAPI* Release)( IDirectDrawClipperFake* );
+//
+//	HRESULT (WINAPI* GetClipList)( IDirectDrawClipperFake*, LPRECT, LPRGNDATA, LPDWORD );
+//	HRESULT (WINAPI* GetHWnd)( IDirectDrawClipperFake* , HWND* );
+//	HRESULT (WINAPI* Initialize)( IDirectDrawClipperFake* , IDirectDrawFake*, DWORD );
+//	HRESULT (WINAPI* IsClipListChanged)( IDirectDrawClipperFake* , BOOL* );
+//	HRESULT (WINAPI* SetClipList)( IDirectDrawClipperFake*, LPRGNDATA, DWORD );
+//	HRESULT (WINAPI* SetHWnd)( IDirectDrawClipperFake*, DWORD, HWND );
+//};
 
 
 /*
@@ -318,4 +320,130 @@ void DDrawPaletteVtableDelete( IDirectDrawPaletteFake** lplpDDrawPalette )
 
 	free( (*lplpDDrawPalette)->lpVtbl );
 	(*lplpDDrawPalette)->lpVtbl = NULL;
+}
+
+int D3DVtableCreate( IDirect3DFake** lplpD3D )
+{
+	if( !lplpD3D || (*lplpD3D) == NULL )
+		return FALSE;
+
+	(*lplpD3D)->lpVtbl = malloc( sizeof( struct IDirect3DFakeVtbl ) );
+	if( (*lplpD3D)->lpVtbl == NULL )
+		return FALSE;
+
+	(*lplpD3D)->lpVtbl->AddRef = IDirect3DFake_AddRef;
+	(*lplpD3D)->lpVtbl->Release = IDirect3DFake_Release;
+	(*lplpD3D)->lpVtbl->QueryInterface = IDirect3DFake_QueryInterface;
+
+	(*lplpD3D)->lpVtbl->CreateDevice = IDirect3DFake_CreateDevice;
+	(*lplpD3D)->lpVtbl->CreateVertexBuffer = IDirect3DFake_CreateVertexBuffer;
+	(*lplpD3D)->lpVtbl->EnumDevices = IDirect3DFake_EnumDevices;
+	(*lplpD3D)->lpVtbl->EnumZBufferFormats = IDirect3DFake_EnumZBufferFormats;
+	(*lplpD3D)->lpVtbl->EvictManagedTextures = IDirect3DFake_EvictManagedTextures;
+
+	return TRUE;
+}
+
+void D3DVtableDelete( IDirect3DFake** lplpD3D )
+{
+	if( !lplpD3D || (*lplpD3D) == NULL )
+		return;
+
+	free( (*lplpD3D)->lpVtbl );
+	(*lplpD3D)->lpVtbl = NULL;
+}
+
+int D3DDeviceVtableCreate( IDirect3DDeviceFake** lplpD3DDevice )
+{
+	if( !lplpD3DDevice || (*lplpD3DDevice) == NULL )
+		return FALSE;
+
+	(*lplpD3DDevice)->lpVtbl = malloc( sizeof( struct IDirect3DDeviceFakeVtbl ) );
+	if( (*lplpD3DDevice)->lpVtbl == NULL )
+		return FALSE;
+
+	(*lplpD3DDevice)->lpVtbl->AddRef = IDirect3DDeviceFake_AddRef;
+	(*lplpD3DDevice)->lpVtbl->Release = IDirect3DDeviceFake_Release;
+	(*lplpD3DDevice)->lpVtbl->QueryInterface = IDirect3DDeviceFake_QueryInterface;
+
+	(*lplpD3DDevice)->lpVtbl->ApplyStateBlock = IDirect3DDeviceFake_ApplyStateBlock;
+	(*lplpD3DDevice)->lpVtbl->BeginScene = IDirect3DDeviceFake_BeginScene;
+	(*lplpD3DDevice)->lpVtbl->BeginStateBlock = IDirect3DDeviceFake_BeginStateBlock;
+	(*lplpD3DDevice)->lpVtbl->CaptureStateBlock = IDirect3DDeviceFake_CaptureStateBlock;
+	(*lplpD3DDevice)->lpVtbl->CreateStateBlock = IDirect3DDeviceFake_CreateStateBlock;
+	(*lplpD3DDevice)->lpVtbl->Clear = IDirect3DDeviceFake_Clear;
+	(*lplpD3DDevice)->lpVtbl->ComputeSphereVisibility = IDirect3DDeviceFake_ComputeSphereVisibility;
+	(*lplpD3DDevice)->lpVtbl->DeleteStateBlock = IDirect3DDeviceFake_DeleteStateBlock;
+	(*lplpD3DDevice)->lpVtbl->DrawIndexedPrimitive = IDirect3DDeviceFake_DrawIndexedPrimitive;
+	(*lplpD3DDevice)->lpVtbl->DrawIndexedPrimitiveStrided = IDirect3DDeviceFake_DrawIndexedPrimitiveStrided;
+	(*lplpD3DDevice)->lpVtbl->DrawIndexedPrimitiveVB = IDirect3DDeviceFake_DrawIndexedPrimitiveVB;
+	(*lplpD3DDevice)->lpVtbl->DrawPrimitive = IDirect3DDeviceFake_DrawPrimitive;
+	(*lplpD3DDevice)->lpVtbl->DrawPrimitiveStrided = IDirect3DDeviceFake_DrawPrimitiveStrided;
+	(*lplpD3DDevice)->lpVtbl->DrawPrimitiveVB = IDirect3DDeviceFake_DrawPrimitiveVB;
+	(*lplpD3DDevice)->lpVtbl->EndScene = IDirect3DDeviceFake_EndScene;
+	(*lplpD3DDevice)->lpVtbl->EndStateBlock = IDirect3DDeviceFake_EndStateBlock;
+	(*lplpD3DDevice)->lpVtbl->GetInfo = IDirect3DDeviceFake_GetInfo;
+	(*lplpD3DDevice)->lpVtbl->GetCaps = IDirect3DDeviceFake_GetCaps;
+	(*lplpD3DDevice)->lpVtbl->GetClipPlane = IDirect3DDeviceFake_GetClipPlane;
+	(*lplpD3DDevice)->lpVtbl->GetClipStatus = IDirect3DDeviceFake_GetClipStatus;
+	(*lplpD3DDevice)->lpVtbl->GetDirect3D = IDirect3DDeviceFake_GetDirect3D;
+	(*lplpD3DDevice)->lpVtbl->GetLight = IDirect3DDeviceFake_GetLight;
+	(*lplpD3DDevice)->lpVtbl->GetLightEnable = IDirect3DDeviceFake_GetLightEnable;
+	(*lplpD3DDevice)->lpVtbl->GetMaterial = IDirect3DDeviceFake_GetMaterial;
+	(*lplpD3DDevice)->lpVtbl->GetRenderState = IDirect3DDeviceFake_GetRenderState;
+	(*lplpD3DDevice)->lpVtbl->GetRenderTarget = IDirect3DDeviceFake_GetRenderTarget;
+	(*lplpD3DDevice)->lpVtbl->GetTexture = IDirect3DDeviceFake_GetTexture;
+	(*lplpD3DDevice)->lpVtbl->GetTextureStageState = IDirect3DDeviceFake_GetTextureStageState;
+	(*lplpD3DDevice)->lpVtbl->GetTransform = IDirect3DDeviceFake_GetTransform;
+	(*lplpD3DDevice)->lpVtbl->GetViewport = IDirect3DDeviceFake_GetViewport;
+	(*lplpD3DDevice)->lpVtbl->LightEnable = IDirect3DDeviceFake_LightEnable;
+	(*lplpD3DDevice)->lpVtbl->Load = IDirect3DDeviceFake_Load;
+	(*lplpD3DDevice)->lpVtbl->MultiplyTransform = IDirect3DDeviceFake_MultiplyTransform;
+	(*lplpD3DDevice)->lpVtbl->PreLoad = IDirect3DDeviceFake_PreLoad;
+	(*lplpD3DDevice)->lpVtbl->SetClipPlane = IDirect3DDeviceFake_SetClipPlane;
+	(*lplpD3DDevice)->lpVtbl->SetClipStatus = IDirect3DDeviceFake_SetClipStatus;
+	(*lplpD3DDevice)->lpVtbl->SetLight = IDirect3DDeviceFake_SetLight;
+	(*lplpD3DDevice)->lpVtbl->SetMaterial = IDirect3DDeviceFake_SetMaterial;
+	(*lplpD3DDevice)->lpVtbl->SetRenderState = IDirect3DDeviceFake_SetRenderState;
+	(*lplpD3DDevice)->lpVtbl->SetTexture = IDirect3DDeviceFake_SetTexture;
+	(*lplpD3DDevice)->lpVtbl->SetTextureStageState = IDirect3DDeviceFake_SetTextureStageState;
+	(*lplpD3DDevice)->lpVtbl->SetTransform = IDirect3DDeviceFake_SetTransform;
+	(*lplpD3DDevice)->lpVtbl->SetViewport = IDirect3DDeviceFake_SetViewport;
+	(*lplpD3DDevice)->lpVtbl->ValidateDevice = IDirect3DDeviceFake_ValidateDevice;
+
+	return TRUE;
+}
+
+void D3DDeviceVtableDelete( IDirect3DDeviceFake** lplpD3DDevice )
+{
+	if( !lplpD3DDevice || (*lplpD3DDevice) == NULL )
+		return;
+
+	free( (*lplpD3DDevice)->lpVtbl );
+	(*lplpD3DDevice)->lpVtbl = NULL;
+}
+
+int D3DVertexBufferVtableCreate( IDirect3DVertexBufferFake** lplpD3DVB )
+{
+	if( !lplpD3DVB || (*lplpD3DVB) == NULL )
+		return FALSE;
+
+	(*lplpD3DVB)->lpVtbl = malloc( sizeof( struct IDirect3DVertexBufferFakeVtbl ) );
+	if( (*lplpD3DVB)->lpVtbl == NULL )
+		return FALSE;
+
+	(*lplpD3DVB)->lpVtbl->AddRef = IDirect3DVertexBufferFake_AddRef;
+	(*lplpD3DVB)->lpVtbl->Release = IDirect3DVertexBufferFake_Release;
+	(*lplpD3DVB)->lpVtbl->QueryInterface = IDirect3DVertexBufferFake_QueryInterface;
+
+	return TRUE;
+}
+
+void D3DVertexBufferVtableDelete( IDirect3DVertexBufferFake** lplpD3DVB )
+{
+	if( !lplpD3DVB || (*lplpD3DVB) == NULL )
+		return;
+
+	free( (*lplpD3DVB)->lpVtbl );
+	(*lplpD3DVB)->lpVtbl = NULL;
 }

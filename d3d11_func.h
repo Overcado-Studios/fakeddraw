@@ -2,6 +2,7 @@
 
 typedef struct D3D11 D3D11;
 typedef struct D3D11Surface D3D11Surface;
+typedef struct D3D11VertexBuffer D3D11VertexBuffer;
 
 
 HRESULT D3D11Func_Initialize( D3D11** ppd3d );
@@ -17,6 +18,7 @@ HRESULT D3D11Func_GetVerticalBlankStatus( D3D11* d3d, LPBOOL lpbIsInVB );
 HRESULT D3D11Func_Present( D3D11* d3d );
 HRESULT D3D11Func_CreateSurface( D3D11* d3d, D3D11Surface** ppsurface, DDSURFACEDESC2* pddsd );
 HRESULT D3D11Func_DeleteSurface( D3D11Surface** ppsurface );
+HRESULT D3D11Func_SetViewport( D3D11* d3d, D3DVIEWPORT7* vp );
 
 HRESULT D3D11SurfaceFunc_GetDC( D3D11Surface* surface, HDC* pDC );
 HRESULT D3D11SurfaceFunc_ReleaseDC( D3D11Surface* surface, HDC* pDC );

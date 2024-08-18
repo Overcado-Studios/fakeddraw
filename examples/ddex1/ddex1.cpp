@@ -271,7 +271,7 @@ InitApp(HINSTANCE hInstance, int nCmdShow)
         return InitFail(hWnd, hRet, "SetCooperativeLevel FAILED");
 
     // Set the video mode to 640x480x8
-    hRet = g_pDD->SetDisplayMode(640, 480, 8, 0, 0);
+    hRet = g_pDD->SetDisplayMode(1280, 720, 8, 0, 0);
     if (hRet != DD_OK)
         return InitFail(hWnd, hRet, "SetDisplayMode FAILED");
 
