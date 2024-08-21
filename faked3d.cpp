@@ -18,8 +18,8 @@
 #define _ACCESS( type, ptr ) ((type*) (ptr)->reserved)
 #define ACCESS( type ) ((type*) (This)->reserved)
 
-#define LOGUNIMPL_F		{ static bool once=true; if(once){ DISPDBG_FP(0, "Not implemented!"); NVASSERT(0,"Not implemented"); once=false; } return E_FAIL; }
-#define LOGUNIMPL(r)	{ static bool once=true; if(once){ DISPDBG_FP(0, "Not implemented!"); NVASSERT(0,"Not implemented"); once=false; } return r; }
+#define LOGUNIMPL_F		{ static bool once=true; if(once){ DISPDBG_FP(0, "Not implemented!"); NVASSERT(0,__func__<<": Not implemented"); once=false; } return E_FAIL; }
+#define LOGUNIMPL(r)	{ static bool once=true; if(once){ DISPDBG_FP(0, "Not implemented!"); NVASSERT(0,__func__<<": Not implemented"); once=false; } return r; }
 
 extern NVDebug nvdebug;
 
@@ -164,7 +164,7 @@ ULONG WINAPI IDirect3DFake_Release( IDirect3DFake* This )
 	GUARD( This, 0 );
 	ULONG ref = _GETREF( D3DPrivate );
 	_DECREF( D3DPrivate, PVT_IDirect3DFake_Uninitialize );
-	_RETREF( D3DPrivate );
+	return ref-1;
 }
 
 HRESULT WINAPI IDirect3DFake::CreateDevice( REFCLSID rclsid, IDirectDrawSurfaceFake* lpDDS, IDirect3DDeviceFake** lplpD3DDevice )
@@ -259,7 +259,7 @@ ULONG WINAPI IDirect3DDeviceFake_Release( IDirect3DDeviceFake* This )
 	GUARD( This, 0 );
 	ULONG ref = _GETREF( D3DDevicePrivate );
 	_DECREF( D3DDevicePrivate, PVT_IDirect3DDeviceFake_Uninitialize );
-	_RETREF( D3DDevicePrivate );
+	return ref-1;
 }
 
 HRESULT WINAPI IDirect3DDeviceFake::ApplyStateBlock( DWORD dwBlockHandle )
@@ -308,7 +308,21 @@ HRESULT WINAPI IDirect3DDeviceFake::Clear( DWORD dwCount, LPD3DRECT lpRects, DWO
 
 HRESULT WINAPI IDirect3DDeviceFake_Clear( IDirect3DDeviceFake* This,  DWORD     dwCount,     LPD3DRECT lpRects,   
   DWORD     dwFlags,     DWORD     dwColor,     D3DVALUE  dvZ,       
-  DWORD     dwStencil  ) LOGUNIMPL_F
+  DWORD     dwStencil  ) 
+{
+	GUARD( This, E_FAIL );
+
+	/* TODO: lpRects */
+
+	if( dwFlags & D3DCLEAR_TARGET )
+		D3D11Func_ClearRT( ACCESS(D3DDevicePrivate)->pD3DContext, dwColor );
+	if( ( dwFlags & D3DCLEAR_ZBUFFER ) )
+		D3D11Func_ClearDS( ACCESS(D3DDevicePrivate)->pD3DContext, 1, dvZ, dwStencil );
+	if( dwFlags & D3DCLEAR_STENCIL )
+		D3D11Func_ClearDS( ACCESS(D3DDevicePrivate)->pD3DContext, 2, dvZ, dwStencil );
+
+	return D3D_OK;
+}
 
 HRESULT WINAPI IDirect3DDeviceFake::ComputeSphereVisibility( LPD3DVECTOR lpCenters,         
   LPD3DVALUE  lpRadii,             DWORD       dwNumSpheres,      
@@ -674,7 +688,7 @@ ULONG WINAPI IDirect3DVertexBufferFake_Release( IDirect3DVertexBufferFake* This 
 	GUARD( This, 0 );
 	ULONG ref = _GETREF( D3DVertexBufferPrivate );
 	_DECREF( D3DVertexBufferPrivate, PVT_IDirect3DVertexBufferFake_Uninitialize );
-	_RETREF( D3DVertexBufferPrivate );
+	return ref-1;
 }
 
 HRESULT WINAPI IDirect3DVertexBufferFake_GetVertexBufferDesc( IDirect3DVertexBufferFake* This,  LPD3DVERTEXBUFFERDESC lpVBDesc ) LOGUNIMPL_F

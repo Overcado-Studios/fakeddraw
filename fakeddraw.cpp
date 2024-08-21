@@ -21,8 +21,8 @@
 #define _ACCESS( type, ptr ) ((type*) (ptr)->reserved)
 #define ACCESS( type ) ((type*) (This)->reserved)
 
-#define LOGUNIMPL_F		{ DISPDBG_FP(0, "Not implemented!"); NVASSERT(0,__func__<<"(): Not implemented"); return E_FAIL; }
-#define LOGUNIMPL(r)	{ DISPDBG_FP(0, "Not implemented!"); NVASSERT(0,__func__<<"(): Not implemented"); return r; }
+#define LOGUNIMPL_F		{ static bool once=true; if(once){ DISPDBG_FP(0, "Not implemented!"); NVASSERT(0,__func__<<": Not implemented"); once=false; } return E_FAIL; }
+#define LOGUNIMPL(r)	{ static bool once=true; if(once){ DISPDBG_FP(0, "Not implemented!"); NVASSERT(0,__func__<<": Not implemented"); once=false; } return r; }
 
 NVDebug nvdebug( 0, "fakeddraw_debug.txt" );
 
@@ -117,7 +117,7 @@ ULONG WINAPI IDirectDrawFake_Release( IDirectDrawFake* This )
 	GUARD( This, 0 );
 	ULONG ref = _GETREF( DDrawPrivate );
 	_DECREF( DDrawPrivate, PVT_IDirectDrawFake_Uninitialize );
-	_RETREF( DDrawPrivate );
+	return ref-1;
 }
 
 HRESULT WINAPI IDirectDrawFake::QueryInterface( REFIID riid, LPVOID FAR * ppvObj )
@@ -478,7 +478,7 @@ ULONG WINAPI IDirectDrawSurfaceFake_Release( IDirectDrawSurfaceFake* This )
 	GUARD( This, 0 );
 	ULONG ref = _GETREF( DDrawSurfacePrivate );
 	_DECREF( DDrawSurfacePrivate, PVT_IDirectDrawSurfaceFake_Uninitialize );
-	_RETREF( DDrawSurfacePrivate );
+	return ref-1;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::QueryInterface( REFIID riid, LPVOID FAR * ppvObj )
@@ -519,6 +519,14 @@ HRESULT WINAPI IDirectDrawSurfaceFake::Blt( LPRECT lpDestRect, IDirectDrawSurfac
 HRESULT WINAPI IDirectDrawSurfaceFake_Blt( IDirectDrawSurfaceFake* This, LPRECT lpDestRect, IDirectDrawSurfaceFake* lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx )
 {
 	GUARD( This, E_FAIL );
+
+	D3D11* d3d = ACCESS(DDrawSurfacePrivate)->pParentD3DContext;
+
+	/* If this is the back buffer being blitted to the front buffer, just call Present and get it over with */
+	if( lpDDSrcSurface )
+		if( SUCCEEDED( D3D11Func_LazyPresent( d3d, _ACCESS(DDrawSurfacePrivate,lpDDSrcSurface)->pSurface, ACCESS(DDrawSurfacePrivate)->pSurface ) ) )
+			return DD_OK;
+
 	return D3D11SurfaceFunc_Blt( ACCESS(DDrawSurfacePrivate)->pParentD3DContext, ACCESS(DDrawSurfacePrivate)->pSurface, lpDestRect, lpSrcRect, dwFlags, lpDDBltFx );
 }
 
@@ -1028,7 +1036,7 @@ ULONG WINAPI IDirectDrawClipperFake_Release( IDirectDrawClipperFake* This )
 	GUARD( This, 0 );
 	ULONG ref = _GETREF( DDrawClipperPrivate );
 	_DECREF( DDrawClipperPrivate, PVT_IDirectDrawClipperFake_Uninitialize );
-	_RETREF( DDrawClipperPrivate );
+	return ref-1;
 }
 
 HRESULT WINAPI IDirectDrawClipperFake::QueryInterface( REFIID riid, LPVOID* ppvObj )

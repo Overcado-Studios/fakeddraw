@@ -213,6 +213,14 @@ HRESULT D3D11Func_GetVerticalBlankStatus( D3D11* d3d, LPBOOL lpbIsInVB )
 	return d3d->ddraw->GetVerticalBlankStatus( lpbIsInVB );
 }
 
+HRESULT D3D11Func_LazyPresent( D3D11* d3d, D3D11Surface* src, D3D11Surface* dst )
+{
+	if( ( src->flags & D3D11_SURF_FLAG_BACKBUFFER ) && ( dst->flags & D3D11_SURF_FLAG_FRONTBUFFER ) )
+		return D3D11Func_Present( d3d );
+
+	return E_FAIL;
+}
+
 HRESULT D3D11Func_Present( D3D11* d3d )
 {
 	return d3d->swapchain->Present( 0, 0 );
@@ -244,7 +252,8 @@ HRESULT D3D11Func_CreateSurface( D3D11* d3d, D3D11Surface** ppsurface, DDSURFACE
 
 			//return DD_OK;
 		}
-		else if( pddsd->ddsCaps.dwCaps & DDSCAPS_BACKBUFFER )
+		else if( pddsd->ddsCaps.dwCaps & DDSCAPS_BACKBUFFER || /* Fullscreen */
+			( pddsd->ddsCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN && pddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE ) ) /* Windowed */
 		{
 			(*ppsurface)->flags |= D3D11_SURF_FLAG_BACKBUFFER;
 
@@ -256,6 +265,8 @@ HRESULT D3D11Func_CreateSurface( D3D11* d3d, D3D11Surface** ppsurface, DDSURFACE
 
 			hr = d3d->swapchain->GetBuffer( 0, __uuidof(IDXGISurface1), (void**)& (*ppsurface)->surface );
 			if( FAILED( hr ) ) { DISPDBG_FP( 0, "ERROR: IDXGISwapChain::GetBuffer() returned"<<std::hex<<hr ); return hr; }
+
+			d3d->context->OMSetRenderTargets( 1, &(*ppsurface)->rtv, NULL );
 
 			//return DD_OK;
 
@@ -322,6 +333,46 @@ HRESULT D3D11Func_SetViewport( D3D11* d3d, D3DVIEWPORT7* vp )
 	return S_OK; 
 }
 
+HRESULT D3D11Func_ClearRT( D3D11* d3d, DWORD dwColour )
+{
+	float fC[4];
+	fC[0] = float((dwColour>>16)&0xFF)/255.0f;
+	fC[1] = float((dwColour>>8)&0xFF)/255.0f;
+	fC[2] = float((dwColour)&0xFF)/255.0f;
+	fC[3] = float((dwColour>>24)&0xFF)/255.0f;
+
+	ID3D11RenderTargetView* rtv = nullptr;
+
+	d3d->context->OMGetRenderTargets( 1, &rtv, NULL );
+	
+	if( rtv )
+	{
+		d3d->context->ClearRenderTargetView( rtv, fC );
+		rtv->Release();
+	}
+	else
+		return E_FAIL;
+
+	return S_OK;
+}
+
+HRESULT D3D11Func_ClearDS( D3D11* d3d, DWORD flag, float z, DWORD stencil )
+{
+	ID3D11DepthStencilView* dsv = nullptr;
+
+	d3d->context->OMGetRenderTargets( 1, NULL, &dsv );
+
+	if( dsv )
+	{
+		d3d->context->ClearDepthStencilView( dsv, (D3D11_CLEAR_FLAG) flag, z, stencil );
+		dsv->Release();
+
+		return S_OK;
+	}
+
+	return E_FAIL;
+}
+
 
 /***********************************************************\
  *            Direct3D11 Surface functionality             *
@@ -351,17 +402,20 @@ HRESULT D3D11SurfaceFunc_Blt( D3D11* d3d, D3D11Surface* surface,  LPRECT lpDestR
 		if( !lpDDBltFx )
 			return E_FAIL;
 
-		DWORD dwC = lpDDBltFx->dwFillColor;
+		if( dwFlags & DDBLT_COLORFILL )
+		{
+			DWORD dwC = lpDDBltFx->dwFillColor;
 
-		float fC[4];
-		fC[0] = float((dwC>>16)&0xFF)/255.0f;
-		fC[1] = float((dwC>>8)&0xFF)/255.0f;
-		fC[2] = float((dwC)&0xFF)/255.0f;
-		fC[3] = float((dwC>>24)&0xFF)/255.0f;
+			float fC[4];
+			fC[0] = float((dwC>>16)&0xFF)/255.0f;
+			fC[1] = float((dwC>>8)&0xFF)/255.0f;
+			fC[2] = float((dwC)&0xFF)/255.0f;
+			fC[3] = float((dwC>>24)&0xFF)/255.0f;
 
-		/* TODO: lpDestRect can be utilized with ID3D11DeviceContext1::ClearView */
+			/* TODO: lpDestRect can be utilized with ID3D11DeviceContext1::ClearView */
 
-		d3d->context->ClearRenderTargetView( surface->rtv, fC );
+			d3d->context->ClearRenderTargetView( surface->rtv, fC );
+		}
 	}
 
 	return E_FAIL;
