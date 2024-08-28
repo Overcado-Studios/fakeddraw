@@ -52,6 +52,9 @@ struct DDrawPalettePrivate
 {
 	ULONG RefCount;
 	DWORD dwFlags;
+
+	LPPALETTEENTRY	peEntries;
+	VOID*			pData;
 };
 
 HRESULT WINAPI DirectDrawFakeCreate( GUID FAR *lpGUID, IDirectDrawFake FAR **lplpDD, IUnknownFake FAR *pUnkOuter );
@@ -85,6 +88,19 @@ VOID PVT_IDirectDrawClipperFake_Uninitialize( IDirectDrawClipperFake** This )
 	delete _ACCESS( DDrawClipperPrivate, (*This) );
 
 	DDrawClipperVtableDelete( This );
+}
+
+VOID PVT_IDirectDrawPaletteFake_Uninitialize( IDirectDrawPaletteFake** This )
+{
+	if( _ACCESS( DDrawPalettePrivate, (*This) )->pData )
+		free( _ACCESS( DDrawPalettePrivate, (*This) )->pData );
+
+	if( _ACCESS( DDrawPalettePrivate, (*This) )->peEntries )
+		free( _ACCESS( DDrawPalettePrivate, (*This) )->peEntries );
+
+	delete _ACCESS( DDrawPalettePrivate, (*This) );
+
+	DDrawPaletteVtableDelete( This );
 }
 
 
@@ -1123,12 +1139,31 @@ HRESULT WINAPI IDirectDrawClipperFake_SetHWnd( IDirectDrawClipperFake* This, DWO
  */
 ULONG WINAPI IDirectDrawPaletteFake_AddRef( IDirectDrawPaletteFake* This )
 {
-	return 0;
+	GUARD( This, 0 );
+	_INCREF( DDrawClipperPrivate );
+	_RETREF( DDrawClipperPrivate );;
+}
+
+ULONG WINAPI IDirectDrawPaletteFake::Release()
+{
+	ULONG refcount = IDirectDrawPaletteFake_Release( this );
+	if( refcount < 1 )
+		delete this;
+
+	return refcount;
 }
 
 ULONG WINAPI IDirectDrawPaletteFake_Release( IDirectDrawPaletteFake* This )
 {
-	return 0;
+	GUARD( This, 0 );
+	ULONG ref = _GETREF( DDrawPalettePrivate );
+	_DECREF( DDrawPalettePrivate, PVT_IDirectDrawPaletteFake_Uninitialize );
+	return ref-1;
+}
+
+HRESULT WINAPI IDirectDrawPaletteFake::QueryInterface( REFIID riid, LPVOID FAR * ppvObj )
+{
+	return IDirectDrawPaletteFake_QueryInterface( this, riid, ppvObj );
 }
 
 HRESULT WINAPI IDirectDrawPaletteFake_QueryInterface( IDirectDrawPaletteFake* This, REFIID riid, LPVOID FAR * ppvObj )
@@ -1136,9 +1171,19 @@ HRESULT WINAPI IDirectDrawPaletteFake_QueryInterface( IDirectDrawPaletteFake* Th
 	return E_INVALIDARG;
 }
 
+HRESULT WINAPI IDirectDrawPaletteFake::GetCaps( LPDWORD lpdwCaps )
+{
+	return IDirectDrawPaletteFake_GetCaps( this, lpdwCaps );
+}
+
 HRESULT WINAPI IDirectDrawPaletteFake_GetCaps( IDirectDrawPaletteFake* This, LPDWORD lpdwCaps )
 {
 	LOGUNIMPL_F;
+}
+
+HRESULT WINAPI IDirectDrawPaletteFake::GetEntries( DWORD dwFlags, DWORD dwBase, DWORD dwNumEntries, LPPALETTEENTRY lpEntries )
+{
+	return IDirectDrawPaletteFake_GetEntries(this, dwFlags, dwBase, dwNumEntries, lpEntries );
 }
 
 HRESULT WINAPI IDirectDrawPaletteFake_GetEntries( IDirectDrawPaletteFake* This, DWORD dwFlags, DWORD dwBase, DWORD dwNumEntries, LPPALETTEENTRY lpEntries )
@@ -1146,9 +1191,19 @@ HRESULT WINAPI IDirectDrawPaletteFake_GetEntries( IDirectDrawPaletteFake* This, 
 	LOGUNIMPL_F;
 }
 
+HRESULT WINAPI IDirectDrawPaletteFake::Initialize( IDirectDrawFake* lpDD, DWORD dwFlags, LPPALETTEENTRY lpDDColorTable )
+{
+	return IDirectDrawPaletteFake_Initialize( this, lpDD, dwFlags, lpDDColorTable );
+}
+
 HRESULT WINAPI IDirectDrawPaletteFake_Initialize(  IDirectDrawPaletteFake* This, IDirectDrawFake* lpDD, DWORD dwFlags, LPPALETTEENTRY lpDDColorTable )
 {
 	LOGUNIMPL_F;
+}
+
+HRESULT WINAPI IDirectDrawPaletteFake::SetEntries( DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries )
+{
+	return IDirectDrawPaletteFake_SetEntries( this, dwFlags, dwStartingEntry, dwCount, lpEntries );
 }
 
 HRESULT WINAPI IDirectDrawPaletteFake_SetEntries( IDirectDrawPaletteFake* This, DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries )

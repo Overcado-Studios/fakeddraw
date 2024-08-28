@@ -671,9 +671,20 @@ HRESULT WINAPI IDirect3DDeviceFake_ValidateDevice( IDirect3DDeviceFake* This,  L
 /*
  * IDirect3DVertexBufferFake functions
  */
+
+HRESULT WINAPI IDirect3DVertexBufferFake::QueryInterface( REFIID riid, LPVOID FAR* ppvObj )
+{
+	return IDirect3DVertexBufferFake_QueryInterface( this, riid, ppvObj );
+}
+
 HRESULT WINAPI IDirect3DVertexBufferFake_QueryInterface( IDirect3DVertexBufferFake* This, REFIID riid, LPVOID FAR* ppvObj )
 {
 	return E_NOINTERFACE;
+}
+
+ULONG WINAPI IDirect3DVertexBufferFake::AddRef()
+{
+	return IDirect3DVertexBufferFake_AddRef(this);
 }
 
 ULONG WINAPI IDirect3DVertexBufferFake_AddRef( IDirect3DVertexBufferFake* This )
@@ -681,6 +692,11 @@ ULONG WINAPI IDirect3DVertexBufferFake_AddRef( IDirect3DVertexBufferFake* This )
 	GUARD( This, 0 );
 	_INCREF( D3DVertexBufferPrivate );
 	_RETREF( D3DVertexBufferPrivate );
+}
+
+ULONG WINAPI IDirect3DVertexBufferFake::Release()
+{
+	return IDirect3DVertexBufferFake_Release(this);
 }
 
 ULONG WINAPI IDirect3DVertexBufferFake_Release( IDirect3DVertexBufferFake* This )
@@ -691,16 +707,52 @@ ULONG WINAPI IDirect3DVertexBufferFake_Release( IDirect3DVertexBufferFake* This 
 	return ref-1;
 }
 
+HRESULT WINAPI IDirect3DVertexBufferFake::GetVertexBufferDesc( LPD3DVERTEXBUFFERDESC lpVBDesc )
+{
+	return IDirect3DVertexBufferFake_GetVertexBufferDesc( this, lpVBDesc );
+}
+
 HRESULT WINAPI IDirect3DVertexBufferFake_GetVertexBufferDesc( IDirect3DVertexBufferFake* This,  LPD3DVERTEXBUFFERDESC lpVBDesc ) LOGUNIMPL_F
 
+HRESULT WINAPI IDirect3DVertexBufferFake::Lock( DWORD   dwFlags,    LPVOID* lplpData,   LPDWORD lpdwSize  )
+{
+	return IDirect3DVertexBufferFake_Lock( this, dwFlags, lplpData, lpdwSize );
+}
+
 HRESULT WINAPI IDirect3DVertexBufferFake_Lock( IDirect3DVertexBufferFake* This, DWORD   dwFlags,    LPVOID* lplpData,   LPDWORD lpdwSize  ) LOGUNIMPL_F
-HRESULT WINAPI IDirect3DVertexBufferFake_Optimize( IDirect3DVertexBufferFake* This,  LPDIRECT3DDEVICE7 lpD3DDevice,  DWORD dwFlags ) LOGUNIMPL_F 
+
+HRESULT WINAPI IDirect3DVertexBufferFake::Optimize( IDirect3DDeviceFake* lpD3DDevice,  DWORD dwFlags )
+{
+	return IDirect3DVertexBufferFake_Optimize( this, lpD3DDevice, dwFlags );
+}
+
+HRESULT WINAPI IDirect3DVertexBufferFake_Optimize( IDirect3DVertexBufferFake* This,  IDirect3DDeviceFake* lpD3DDevice,  DWORD dwFlags ) LOGUNIMPL_F 
+
+HRESULT WINAPI IDirect3DVertexBufferFake::ProcessVertices( DWORD dwVertexOp, DWORD dwDestIndex, DWORD dwCount, IDirect3DVertexBufferFake* lpSrcBuffer, DWORD dwSrcIndex, IDirect3DDeviceFake* lpD3DDevice, DWORD dwFlags )
+{
+	return IDirect3DVertexBufferFake_ProcessVertices( this, dwVertexOp, dwDestIndex, dwCount, lpSrcBuffer, dwSrcIndex, lpD3DDevice, dwFlags );
+}
+
 HRESULT WINAPI IDirect3DVertexBufferFake_ProcessVertices( IDirect3DVertexBufferFake* This,  DWORD dwVertexOp,   DWORD dwDestIndex, 
-  DWORD dwCount,   LPDIRECT3DVERTEXBUFFER7 lpSrcBuffer,   DWORD dwSrcIndex, 
-  LPDIRECT3DDEVICE7       lpD3DDevice,   DWORD dwFlags) LOGUNIMPL_F
+  DWORD dwCount,   IDirect3DVertexBufferFake* lpSrcBuffer,   DWORD dwSrcIndex, 
+  IDirect3DDeviceFake*       lpD3DDevice,   DWORD dwFlags) LOGUNIMPL_F
+
+HRESULT WINAPI IDirect3DVertexBufferFake::ProcessVerticesStrided( DWORD dwVertexOp,   DWORD dwDestIndex, 
+  DWORD dwCount,   LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, 
+  DWORD dwSrcIndex,   IDirect3DDeviceFake* lpD3DDevice,   DWORD dwFlags) 
+{
+	return  IDirect3DVertexBufferFake_ProcessVerticesStrided(this, dwVertexOp, dwDestIndex, dwCount, lpVertexArray, dwSrcIndex, lpD3DDevice, dwFlags );
+}
+
 HRESULT WINAPI IDirect3DVertexBufferFake_ProcessVerticesStrided( IDirect3DVertexBufferFake* This,  DWORD dwVertexOp,   DWORD dwDestIndex, 
   DWORD dwCount,   LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, 
-  DWORD dwSrcIndex,   LPDIRECT3DDEVICE7 lpD3DDevice,   DWORD dwFlags) LOGUNIMPL_F
+  DWORD dwSrcIndex,   IDirect3DDeviceFake* lpD3DDevice,   DWORD dwFlags) LOGUNIMPL_F
+
+HRESULT WINAPI IDirect3DVertexBufferFake::Unlock()
+{
+	return IDirect3DVertexBufferFake_Unlock( this );
+}
+
 HRESULT WINAPI IDirect3DVertexBufferFake_Unlock( IDirect3DVertexBufferFake* This ) LOGUNIMPL_F
 
 

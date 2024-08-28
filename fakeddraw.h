@@ -219,6 +219,7 @@ DECLARE_INTERFACE_( IDirectDrawClipperFake, IUnknownFake )
 /*
  * IDirectDrawPaletteFake
  */
+#if 0
 typedef struct IDirectDrawPaletteFake
 #ifdef __cplusplus
 	: public IUnknownFake
@@ -233,5 +234,21 @@ typedef struct IDirectDrawPaletteFake
 }IDirectDrawPaletteFake;
 typedef struct IDirectDrawPaletteFakeVtbl IDirectDrawPaletteFakeVtbl;
 struct IDirectDrawPaletteFakeVtbl;
+#else
+#undef INTERFACE
+#define INTERFACE IDirectDrawPaletteFake
+DECLARE_INTERFACE_( IDirectDrawPaletteFake, IUnknownFake )
+{
+    /*** IUnknown methods ***/
+    STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) PURE;
+    STDMETHOD_(ULONG,AddRef) (THIS)  PURE;
+    STDMETHOD_(ULONG,Release) (THIS) PURE;
+    /*** IDirectDrawPalette methods ***/
+    STDMETHOD(GetCaps)(THIS_ LPDWORD) PURE;
+    STDMETHOD(GetEntries)(THIS_ DWORD,DWORD,DWORD,LPPALETTEENTRY) PURE;
+    STDMETHOD(Initialize)(THIS_ IDirectDrawFake*, DWORD, LPPALETTEENTRY) PURE;
+    STDMETHOD(SetEntries)(THIS_ DWORD,DWORD,DWORD,LPPALETTEENTRY) PURE;
+};
+#endif
 
 #endif

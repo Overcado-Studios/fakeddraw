@@ -216,13 +216,13 @@ ULONG WINAPI IDirect3DVertexBufferFake_AddRef( IDirect3DVertexBufferFake* This )
 ULONG WINAPI IDirect3DVertexBufferFake_Release( IDirect3DVertexBufferFake* This );
 HRESULT WINAPI IDirect3DVertexBufferFake_GetVertexBufferDesc( IDirect3DVertexBufferFake* This,  LPD3DVERTEXBUFFERDESC lpVBDesc );
 HRESULT WINAPI IDirect3DVertexBufferFake_Lock( IDirect3DVertexBufferFake* This, DWORD   dwFlags,    LPVOID* lplpData,   LPDWORD lpdwSize  ) ;
-HRESULT WINAPI IDirect3DVertexBufferFake_Optimize( IDirect3DVertexBufferFake* This,  LPDIRECT3DDEVICE7 lpD3DDevice,  DWORD dwFlags );
+HRESULT WINAPI IDirect3DVertexBufferFake_Optimize( IDirect3DVertexBufferFake* This,  IDirect3DDeviceFake* lpD3DDevice,  DWORD dwFlags );
 HRESULT WINAPI IDirect3DVertexBufferFake_ProcessVertices( IDirect3DVertexBufferFake* This,  DWORD dwVertexOp,   DWORD dwDestIndex, 
-  DWORD dwCount,   LPDIRECT3DVERTEXBUFFER7 lpSrcBuffer,   DWORD dwSrcIndex, 
-  LPDIRECT3DDEVICE7       lpD3DDevice,   DWORD dwFlags);
+  DWORD dwCount,   IDirect3DVertexBufferFake* lpSrcBuffer,   DWORD dwSrcIndex, 
+  IDirect3DDeviceFake*       lpD3DDevice,   DWORD dwFlags);
 HRESULT WINAPI IDirect3DVertexBufferFake_ProcessVerticesStrided( IDirect3DVertexBufferFake* This,  DWORD dwVertexOp,   DWORD dwDestIndex, 
   DWORD dwCount,   LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, 
-  DWORD dwSrcIndex,   LPDIRECT3DDEVICE7 lpD3DDevice,   DWORD dwFlags);
+  DWORD dwSrcIndex,  IDirect3DDeviceFake* lpD3DDevice,   DWORD dwFlags);
 HRESULT WINAPI IDirect3DVertexBufferFake_Unlock( IDirect3DVertexBufferFake* This );
 
 

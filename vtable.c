@@ -123,17 +123,17 @@
 /*
  * Fake DirectDraw Palette interface vtables 
  */
-struct IDirectDrawPaletteFakeVtbl
-{
-	HRESULT (WINAPI* QueryInterface)( IDirectDrawPaletteFake*, REFIID, LPVOID );
-	ULONG (WINAPI* AddRef)( IDirectDrawPaletteFake* );
-	ULONG (WINAPI* Release)( IDirectDrawPaletteFake* );
-
-	HRESULT (WINAPI* GetCaps)( IDirectDrawPaletteFake* This, LPDWORD lpdwCaps );
-	HRESULT (WINAPI* GetEntries)( IDirectDrawPaletteFake* This, DWORD dwFlags, DWORD dwBase, DWORD dwNumEntries, LPPALETTEENTRY lpEntries );
-	HRESULT (WINAPI* Initialize)(  IDirectDrawPaletteFake* This, IDirectDrawFake* lpDD, DWORD dwFlags, LPPALETTEENTRY lpDDColorTable );
-	HRESULT (WINAPI* SetEntries)( IDirectDrawPaletteFake* This, DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries );
-};
+//struct IDirectDrawPaletteFakeVtbl
+//{
+//	HRESULT (WINAPI* QueryInterface)( IDirectDrawPaletteFake*, REFIID, LPVOID );
+//	ULONG (WINAPI* AddRef)( IDirectDrawPaletteFake* );
+//	ULONG (WINAPI* Release)( IDirectDrawPaletteFake* );
+//
+//	HRESULT (WINAPI* GetCaps)( IDirectDrawPaletteFake* This, LPDWORD lpdwCaps );
+//	HRESULT (WINAPI* GetEntries)( IDirectDrawPaletteFake* This, DWORD dwFlags, DWORD dwBase, DWORD dwNumEntries, LPPALETTEENTRY lpEntries );
+//	HRESULT (WINAPI* Initialize)(  IDirectDrawPaletteFake* This, IDirectDrawFake* lpDD, DWORD dwFlags, LPPALETTEENTRY lpDDColorTable );
+//	HRESULT (WINAPI* SetEntries)( IDirectDrawPaletteFake* This, DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries );
+//};
 
 
 
