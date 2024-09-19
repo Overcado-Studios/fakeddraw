@@ -309,6 +309,7 @@ int DDrawPaletteVtableCreate( IDirectDrawPaletteFake** lplpDDrawPalette )
 	(*lplpDDrawPalette)->lpVtbl->GetCaps = IDirectDrawPaletteFake_GetCaps;
 	(*lplpDDrawPalette)->lpVtbl->GetEntries = IDirectDrawPaletteFake_GetEntries;
 	(*lplpDDrawPalette)->lpVtbl->SetEntries = IDirectDrawPaletteFake_SetEntries;
+	(*lplpDDrawPalette)->lpVtbl->Initialize = IDirectDrawPaletteFake_Initialize;
 
 	return TRUE;
 }
@@ -435,6 +436,13 @@ int D3DVertexBufferVtableCreate( IDirect3DVertexBufferFake** lplpD3DVB )
 	(*lplpD3DVB)->lpVtbl->AddRef = IDirect3DVertexBufferFake_AddRef;
 	(*lplpD3DVB)->lpVtbl->Release = IDirect3DVertexBufferFake_Release;
 	(*lplpD3DVB)->lpVtbl->QueryInterface = IDirect3DVertexBufferFake_QueryInterface;
+
+	(*lplpD3DVB)->lpVtbl->GetVertexBufferDesc = IDirect3DVertexBufferFake_GetVertexBufferDesc;
+	(*lplpD3DVB)->lpVtbl->Optimize = IDirect3DVertexBufferFake_Optimize;
+	(*lplpD3DVB)->lpVtbl->ProcessVertices = IDirect3DVertexBufferFake_ProcessVertices;
+	(*lplpD3DVB)->lpVtbl->ProcessVerticesStrided = IDirect3DVertexBufferFake_ProcessVerticesStrided;
+	(*lplpD3DVB)->lpVtbl->Unlock = IDirect3DVertexBufferFake_Unlock;
+	(*lplpD3DVB)->lpVtbl->Lock = IDirect3DVertexBufferFake_Lock;
 
 	return TRUE;
 }

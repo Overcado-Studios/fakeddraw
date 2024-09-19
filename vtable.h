@@ -13,7 +13,7 @@ HRESULT WINAPI IDirectDrawFake_CreatePalette( IDirectDrawFake* This, DWORD dwFla
 HRESULT WINAPI IDirectDrawFake_CreateSurface( IDirectDrawFake* This, LPDDSURFACEDESC2 lpDDSurfaceDesc2, IDirectDrawSurfaceFake** lplpDDSurface, IUnknownFake* pUnkOuter );
 HRESULT WINAPI IDirectDrawFake_DuplicateSurface( IDirectDrawFake* This, IDirectDrawSurfaceFake* lpDDSurface, IDirectDrawSurfaceFake** lplpDupDDSurface ) ;
 HRESULT WINAPI IDirectDrawFake_EnumDisplayModes( IDirectDrawFake* This, DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext, LPDDENUMMODESCALLBACK2 lpEnumModesCallback );
-HRESULT WINAPI IDirectDrawFake_EnumSurfaces( IDirectDrawFake* This, DWORD dwFlags, LPDDSURFACEDESC2 lpDDSD2, LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpEnumSurfacesCallback );
+HRESULT WINAPI IDirectDrawFake_EnumSurfaces( IDirectDrawFake* This, DWORD dwFlags, LPDDSURFACEDESC2 lpDDSD2, LPVOID lpContext, LPDDENUMSURFACESCALLBACKFAKE lpEnumSurfacesCallback );
 HRESULT WINAPI IDirectDrawFake_EvaluateMode( IDirectDrawFake* This, DWORD dwFlags, DWORD *pSecondsUntilTimeout );
 HRESULT WINAPI IDirectDrawFake_FlipToGDISurface( IDirectDrawFake* This );
 HRESULT WINAPI IDirectDrawFake_GetAvailableVidMem( IDirectDrawFake* This, LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwTotal, LPDWORD lpdwFree );
@@ -49,8 +49,8 @@ HRESULT WINAPI IDirectDrawSurfaceFake_BltBatch( IDirectDrawSurfaceFake* This, LP
 HRESULT WINAPI IDirectDrawSurfaceFake_BltFast( IDirectDrawSurfaceFake* This, DWORD dwX,DWORD dwY, IDirectDrawSurfaceFake* lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans );
 HRESULT WINAPI IDirectDrawSurfaceFake_ChangeUniquenessValue( IDirectDrawSurfaceFake* This );
 HRESULT WINAPI IDirectDrawSurfaceFake_DeleteAttachedSurface( IDirectDrawSurfaceFake* This, DWORD dwFlags, IDirectDrawSurfaceFake* lpDDSAttachedSurface );
-HRESULT WINAPI IDirectDrawSurfaceFake_EnumAttachedSurfaces( IDirectDrawSurfaceFake* This, LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpEnumSurfacesCallback );
-HRESULT WINAPI IDirectDrawSurfaceFake_EnumOverlayZOrders( IDirectDrawSurfaceFake* This, DWORD dwFlags, LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpfnCallback );
+HRESULT WINAPI IDirectDrawSurfaceFake_EnumAttachedSurfaces( IDirectDrawSurfaceFake* This, LPVOID lpContext, LPDDENUMSURFACESCALLBACKFAKE lpEnumSurfacesCallback );
+HRESULT WINAPI IDirectDrawSurfaceFake_EnumOverlayZOrders( IDirectDrawSurfaceFake* This, DWORD dwFlags, LPVOID lpContext, LPDDENUMSURFACESCALLBACKFAKE lpfnCallback );
 HRESULT WINAPI IDirectDrawSurfaceFake_Flip( IDirectDrawSurfaceFake* This, IDirectDrawSurfaceFake* lpDDSurfaceTargetOverride, DWORD dwFlags );
 HRESULT WINAPI IDirectDrawSurfaceFake_FreePrivateData( IDirectDrawSurfaceFake* This, REFGUID guidTag ); 
 HRESULT WINAPI IDirectDrawSurfaceFake_GetAttachedSurface( IDirectDrawSurfaceFake* This, LPDDSCAPS2 lpDDSCaps, IDirectDrawSurfaceFake* FAR *lplpDDAttachedSurface );

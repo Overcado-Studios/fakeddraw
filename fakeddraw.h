@@ -27,6 +27,7 @@ typedef struct IDirectDrawSurfaceFake IDirectDrawSurfaceFake;
 typedef struct IDirectDrawClipperFake IDirectDrawClipperFake;
 typedef struct IDirectDrawPaletteFake IDirectDrawPaletteFake;
 
+typedef HRESULT (FAR PASCAL * LPDDENUMSURFACESCALLBACKFAKE)(IDirectDrawSurfaceFake*, LPDDSURFACEDESC2, LPVOID);
 
 HRESULT WINAPI DirectDrawFakeCreate( GUID FAR *lpGUID, IDirectDrawFake FAR **lplpDD, IUnknownFake FAR *pUnkOuter );
 HRESULT WINAPI DirectDrawFakeCreateEx( GUID FAR * lpGuid, LPVOID  *lplpDD, REFIID  iid,IUnknownFake FAR *pUnkOuter );
@@ -67,7 +68,7 @@ FAKEINTERFACE( IDirectDrawFake, IUnknownFake )
     STDMETHOD(CreateSurface)(THIS_  LPDDSURFACEDESC2, IDirectDrawSurfaceFake* FAR *, IUnknownFake FAR *);
     STDMETHOD(DuplicateSurface)( THIS_ IDirectDrawSurfaceFake*, IDirectDrawSurfaceFake* FAR * );
     STDMETHOD(EnumDisplayModes)( THIS_ DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMMODESCALLBACK2 );
-    STDMETHOD(EnumSurfaces)(THIS_ DWORD, LPDDSURFACEDESC2, LPVOID,LPDDENUMSURFACESCALLBACK7 );
+    STDMETHOD(EnumSurfaces)(THIS_ DWORD, LPDDSURFACEDESC2, LPVOID,LPDDENUMSURFACESCALLBACKFAKE );
     STDMETHOD(FlipToGDISurface)(THIS);
     STDMETHOD(GetCaps)( THIS_ LPDDCAPS, LPDDCAPS);
     STDMETHOD(GetDisplayMode)( THIS_ LPDDSURFACEDESC2);
@@ -128,8 +129,8 @@ FAKEINTERFACE( IDirectDrawSurfaceFake, IUnknownFake )
     STDMETHOD(BltBatch)(THIS_ LPDDBLTBATCH, DWORD, DWORD );
     STDMETHOD(BltFast)(THIS_ DWORD,DWORD,IDirectDrawSurfaceFake*, LPRECT,DWORD);
     STDMETHOD(DeleteAttachedSurface)(THIS_ DWORD,IDirectDrawSurfaceFake*);
-    STDMETHOD(EnumAttachedSurfaces)(THIS_ LPVOID,LPDDENUMSURFACESCALLBACK7);
-    STDMETHOD(EnumOverlayZOrders)(THIS_ DWORD,LPVOID,LPDDENUMSURFACESCALLBACK7);
+    STDMETHOD(EnumAttachedSurfaces)(THIS_ LPVOID,LPDDENUMSURFACESCALLBACKFAKE);
+    STDMETHOD(EnumOverlayZOrders)(THIS_ DWORD,LPVOID,LPDDENUMSURFACESCALLBACKFAKE);
     STDMETHOD(Flip)(THIS_ IDirectDrawSurfaceFake*, DWORD);
     STDMETHOD(GetAttachedSurface)(THIS_ LPDDSCAPS2, IDirectDrawSurfaceFake* FAR *);
     STDMETHOD(GetBltStatus)(THIS_ DWORD);

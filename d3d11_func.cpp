@@ -373,6 +373,12 @@ HRESULT D3D11Func_ClearDS( D3D11* d3d, DWORD flag, float z, DWORD stencil )
 	return E_FAIL;
 }
 
+HRESULT D3D11Func_GetDisplayMode( D3D11* d3d, DDSURFACEDESC2* pddsd )
+{
+	/* TODO: Might need to do more here... */
+	return d3d->ddraw->GetDisplayMode( pddsd );
+}
+
 
 /***********************************************************\
  *            Direct3D11 Surface functionality             *
@@ -415,7 +421,21 @@ HRESULT D3D11SurfaceFunc_Blt( D3D11* d3d, D3D11Surface* surface,  LPRECT lpDestR
 			/* TODO: lpDestRect can be utilized with ID3D11DeviceContext1::ClearView */
 
 			d3d->context->ClearRenderTargetView( surface->rtv, fC );
+
+			return DD_OK;
 		}
+	}
+
+	/* Depth buffers are kind of a special case... */
+	else if( surface->ddsd.ddsCaps.dwCaps & DDSCAPS_ZBUFFER )
+	{
+		return E_FAIL;
+	}
+
+	/* Do a normal blit */
+	else if( surface->ddsd.ddsCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN )
+	{
+		
 	}
 
 	return E_FAIL;

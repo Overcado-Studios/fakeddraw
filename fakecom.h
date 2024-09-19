@@ -1,6 +1,6 @@
 #pragma once
 
-
+#pragma warning(disable:4005)
 #ifdef __cplusplus
 
 #define __STRUCT__ struct
@@ -53,3 +53,5 @@ typedef struct IUnknownFake
 #endif
 	VOID* reserved;
 } IUnknownFake;
+
+#pragma warning(default:4005)

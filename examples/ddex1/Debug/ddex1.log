@@ -1,3 +1,6 @@
-﻿  vtable.c
-  LINK : C:\Shogunate\fakeddraw\examples\ddex1\Debug\ddex1.exe not found or not built by the last incremental link; performing full link
+﻿  faked3d.cpp
+  fakeddraw.cpp
+  ddex1.cpp
+  Generating Code...
+  vtable.c
   ddex1.vcxproj -> C:\Shogunate\fakeddraw\examples\ddex1\Debug\ddex1.exe
