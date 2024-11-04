@@ -18,6 +18,7 @@
 //-----------------------------------------------------------------------------
 #include <windows.h>
 #include <ddraw.h>
+#include <fakeddraw.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include "resource.h"
@@ -38,10 +39,19 @@
 //-----------------------------------------------------------------------------
 // Global data
 //-----------------------------------------------------------------------------
-LPDIRECTDRAW7               g_pDD = NULL;        // DirectDraw object
-LPDIRECTDRAWSURFACE7        g_pDDSPrimary = NULL;// DirectDraw primary surface
-LPDIRECTDRAWSURFACE7        g_pDDSBack = NULL;   // DirectDraw back surface
-LPDIRECTDRAWPALETTE         g_pDDPal = NULL;     // The primary surface palette
+//LPDIRECTDRAW7               g_pDD = NULL;        // DirectDraw object
+//LPDIRECTDRAWSURFACE7        g_pDDSPrimary = NULL;// DirectDraw primary surface
+//LPDIRECTDRAWSURFACE7        g_pDDSBack = NULL;   // DirectDraw back surface
+//LPDIRECTDRAWPALETTE         g_pDDPal = NULL;     // The primary surface palette
+//BOOL                        g_bActive = FALSE;   // Is application active?
+
+//-----------------------------------------------------------------------------
+// Global data
+//-----------------------------------------------------------------------------
+IDirectDrawFake* g_pDD = NULL;        // DirectDraw object
+IDirectDrawSurfaceFake* g_pDDSPrimary = NULL;// DirectDraw primary surface
+IDirectDrawSurfaceFake* g_pDDSBack = NULL;   // DirectDraw back surface
+IDirectDrawPaletteFake* g_pDDPal = NULL;
 BOOL                        g_bActive = FALSE;   // Is application active?
 
 //-----------------------------------------------------------------------------
@@ -94,7 +104,7 @@ InitFail(HWND hWnd, HRESULT hRet, LPCTSTR szError,...)
     va_list                     vl;
 
     va_start(vl, szError);
-    vsprintf(szBuff, szError, vl);
+    vsprintf_s(szBuff, szError, vl);
     ReleaseAllObjects();
     MessageBox(hWnd, szBuff, TITLE, MB_OK);
     DestroyWindow(hWnd);
@@ -261,7 +271,7 @@ InitApp(HINSTANCE hInstance, int nCmdShow)
     ///////////////////////////////////////////////////////////////////////////
     // Create the main DirectDraw object
     ///////////////////////////////////////////////////////////////////////////
-    hRet = DirectDrawCreateEx(NULL, (VOID**)&g_pDD, IID_IDirectDraw7, NULL);
+    hRet = DirectDrawFakeCreateEx(NULL, (VOID**)&g_pDD, IID_IDirectDraw7, NULL);
     if (hRet != DD_OK)
         return InitFail(hWnd, hRet, "DirectDrawCreateEx FAILED");
 

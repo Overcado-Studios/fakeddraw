@@ -1,0 +1,285 @@
+﻿  ddex2.cpp
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(97,5): error C2664: 'int vsprintf(char *const ,const char *const ,va_list)': cannot convert argument 2 from 'LPCTSTR' to 'const char *const '
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(97,22):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\ucrt\stdio.h(1465,37):
+      see declaration of 'vsprintf'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(97,5):
+      while trying to match the argument list '(char [128], LPCTSTR, va_list)'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(99,5): error C2664: 'int MessageBoxW(HWND,LPCWSTR,LPCWSTR,UINT)': cannot convert argument 2 from 'char [128]' to 'LPCWSTR'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(99,22):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\um\winuser.h(9180,1):
+      see declaration of 'MessageBoxW'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(99,5):
+      while trying to match the argument list '(HWND, char [128], const char [22], long)'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(128,44): error C2664: 'int lstrlenW(LPCWSTR)': cannot convert argument 1 from 'char [38]' to 'LPCWSTR'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(128,52):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\um\winbase.h(2893,1):
+      see declaration of 'lstrlenW'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(128,44):
+      while trying to match the argument list '(char [38])'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(129,13): error C2664: 'BOOL TextOutW(HDC,int,int,LPCWSTR,int)': cannot convert argument 4 from 'char [38]' to 'LPCWSTR'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(130,21):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\um\wingdi.h(5147,25):
+      see declaration of 'TextOutW'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(129,13):
+      while trying to match the argument list '(HDC, LONG, LONG, char [38], unsigned __int64)'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(131,44): error C2664: 'int lstrlenW(LPCWSTR)': cannot convert argument 1 from 'char [27]' to 'LPCWSTR'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(131,52):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\um\winbase.h(2893,1):
+      see declaration of 'lstrlenW'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(131,44):
+      while trying to match the argument list '(char [27])'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(136,43): error C2664: 'int lstrlenW(LPCWSTR)': cannot convert argument 1 from 'char [26]' to 'LPCWSTR'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(136,51):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\um\winbase.h(2893,1):
+      see declaration of 'lstrlenW'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(136,43):
+      while trying to match the argument list '(char [26])'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(199,32): error C2664: 'HRESULT DDReLoadBitmap(IDirectDrawSurface *,LPCSTR)': cannot convert argument 1 from 'LPDIRECTDRAWSURFACE7' to 'IDirectDrawSurface *'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(199,47):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.h(20,29):
+      see declaration of 'DDReLoadBitmap'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(199,32):
+      while trying to match the argument list '(LPDIRECTDRAWSURFACE7, char [5])'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(209,25): warning C4244: 'return': conversion from 'LRESULT' to 'long', possible loss of data
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(231,22): error C2440: '=': cannot convert from 'long (__cdecl *)(HWND,UINT,WPARAM,LPARAM)' to 'WNDPROC'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(231,22):
+      This conversion requires a reinterpret_cast, a C-style cast or parenthesized function-style cast
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(238,23): error C2440: '=': cannot convert from 'const char [11]' to 'LPCWSTR'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(238,23):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(239,24): error C2440: '=': cannot convert from 'const char [11]' to 'LPCWSTR'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(239,24):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(243,12): error C2664: 'HWND CreateWindowExW(DWORD,LPCWSTR,LPCWSTR,DWORD,int,int,int,int,HWND,HMENU,HINSTANCE,LPVOID)': cannot convert argument 2 from 'const char [11]' to 'LPCWSTR'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(244,27):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\um\winuser.h(4437,1):
+      see declaration of 'CreateWindowExW'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(243,12):
+      while trying to match the argument list '(long, const char [11], const char [22], unsigned long, int, int, int, int, int, int, HINSTANCE, int)'
+  
+  ddutil.cpp
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(266,16): error C2664: 'HRESULT InitFail(HWND,HRESULT,LPCTSTR,...)': cannot convert argument 3 from 'const char [26]' to 'LPCTSTR'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(266,37):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(91,1):
+      see declaration of 'InitFail'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(266,16):
+      while trying to match the argument list '(HWND, HRESULT, const char [26])'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(271,16): error C2664: 'HRESULT InitFail(HWND,HRESULT,LPCTSTR,...)': cannot convert argument 3 from 'const char [27]' to 'LPCTSTR'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(271,37):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(91,1):
+      see declaration of 'InitFail'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(271,16):
+      while trying to match the argument list '(HWND, HRESULT, const char [27])'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(276,16): error C2664: 'HRESULT InitFail(HWND,HRESULT,LPCTSTR,...)': cannot convert argument 3 from 'const char [22]' to 'LPCTSTR'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(276,37):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(91,1):
+      see declaration of 'InitFail'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(276,16):
+      while trying to match the argument list '(HWND, HRESULT, const char [22])'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(288,16): error C2664: 'HRESULT InitFail(HWND,HRESULT,LPCTSTR,...)': cannot convert argument 3 from 'const char [21]' to 'LPCTSTR'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(288,37):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(91,1):
+      see declaration of 'InitFail'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(288,16):
+      while trying to match the argument list '(HWND, HRESULT, const char [21])'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(295,16): error C2664: 'HRESULT InitFail(HWND,HRESULT,LPCTSTR,...)': cannot convert argument 3 from 'const char [26]' to 'LPCTSTR'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(295,37):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(91,1):
+      see declaration of 'InitFail'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(295,16):
+      while trying to match the argument list '(HWND, HRESULT, const char [26])'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(298,16): error C2664: 'IDirectDrawPalette *DDLoadPalette(IDirectDraw *,LPCSTR)': cannot convert argument 1 from 'LPDIRECTDRAW7' to 'IDirectDraw *'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(298,30):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.h(18,29):
+      see declaration of 'DDLoadPalette'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(298,16):
+      while trying to match the argument list '(LPDIRECTDRAW7, char [5])'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(300,16): error C2664: 'HRESULT InitFail(HWND,HRESULT,LPCTSTR,...)': cannot convert argument 3 from 'const char [21]' to 'LPCTSTR'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(300,37):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(91,1):
+      see declaration of 'InitFail'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(300,16):
+      while trying to match the argument list '(HWND, HRESULT, const char [21])'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(303,16): error C2664: 'HRESULT InitFail(HWND,HRESULT,LPCTSTR,...)': cannot convert argument 3 from 'const char [18]' to 'LPCTSTR'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(303,37):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(91,1):
+      see declaration of 'InitFail'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(303,16):
+      while trying to match the argument list '(HWND, HRESULT, const char [18])'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(306,12): error C2664: 'HRESULT DDReLoadBitmap(IDirectDrawSurface *,LPCSTR)': cannot convert argument 1 from 'LPDIRECTDRAWSURFACE7' to 'IDirectDrawSurface *'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(306,27):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.h(20,29):
+      see declaration of 'DDReLoadBitmap'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(306,12):
+      while trying to match the argument list '(LPDIRECTDRAWSURFACE7, char [5])'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(308,16): error C2664: 'HRESULT InitFail(HWND,HRESULT,LPCTSTR,...)': cannot convert argument 3 from 'const char [22]' to 'LPCTSTR'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(308,37):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(91,1):
+      see declaration of 'InitFail'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(308,16):
+      while trying to match the argument list '(HWND, HRESULT, const char [22])'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(312,16): error C2664: 'HRESULT InitFail(HWND,HRESULT,LPCTSTR,...)': cannot convert argument 3 from 'const char [16]' to 'LPCTSTR'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(312,37):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(91,1):
+      see declaration of 'InitFail'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(312,16):
+      while trying to match the argument list '(HWND, HRESULT, const char [16])'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddex2.cpp(340,15): warning C4244: 'return': conversion from 'WPARAM' to 'int', possible loss of data
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(30,1): error C2733: 'DDLoadBitmap': you cannot overload a function with 'extern "C"' linkage
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.h(19,29):
+      see declaration of 'DDLoadBitmap'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(40,21): error C2664: 'HANDLE LoadImageW(HINSTANCE,LPCWSTR,UINT,int,int,UINT)': cannot convert argument 2 from 'LPCSTR' to 'LPCWSTR'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(40,54):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\um\winuser.h(10858,1):
+      see declaration of 'LoadImageW'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(40,21):
+      while trying to match the argument list '(HMODULE, LPCSTR, int, int, int, int)'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(43,25): error C2664: 'HANDLE LoadImageW(HINSTANCE,LPCWSTR,UINT,int,int,UINT)': cannot convert argument 2 from 'LPCSTR' to 'LPCWSTR'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(43,41):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\um\winuser.h(10858,1):
+      see declaration of 'LoadImageW'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(43,25):
+      while trying to match the argument list '(int, LPCSTR, int, int, int, int)'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(62,5): error C2664: 'HRESULT DDCopyBitmap(IDirectDrawSurface *,HBITMAP,int,int,int,int)': cannot convert argument 1 from 'IDirectDrawSurface7 *' to 'IDirectDrawSurface *'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(62,18):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.h(21,29):
+      see declaration of 'DDCopyBitmap'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(62,5):
+      while trying to match the argument list '(IDirectDrawSurface7 *, HBITMAP, int, int, int, int)'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(83,21): error C2664: 'HANDLE LoadImageW(HINSTANCE,LPCWSTR,UINT,int,int,UINT)': cannot convert argument 2 from 'LPCSTR' to 'LPCWSTR'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(83,54):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\um\winuser.h(10858,1):
+      see declaration of 'LoadImageW'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(83,21):
+      while trying to match the argument list '(HMODULE, LPCSTR, int, int, int, int)'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(86,25): error C2664: 'HANDLE LoadImageW(HINSTANCE,LPCWSTR,UINT,int,int,UINT)': cannot convert argument 2 from 'LPCSTR' to 'LPCWSTR'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(86,41):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\um\winuser.h(10858,1):
+      see declaration of 'LoadImageW'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(86,25):
+      while trying to match the argument list '(int, LPCSTR, int, int, int, int)'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(90,9): error C2664: 'void OutputDebugStringW(LPCWSTR)': cannot convert argument 1 from 'const char [16]' to 'LPCWSTR'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(90,27):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\um\debugapi.h(61,1):
+      see declaration of 'OutputDebugStringW'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(90,9):
+      while trying to match the argument list '(const char [16])'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(93,10): error C2664: 'HRESULT DDCopyBitmap(IDirectDrawSurface *,HBITMAP,int,int,int,int)': cannot convert argument 1 from 'IDirectDrawSurface7 *' to 'IDirectDrawSurface *'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(93,23):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.h(21,29):
+      see declaration of 'DDCopyBitmap'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(93,10):
+      while trying to match the argument list '(IDirectDrawSurface7 *, HBITMAP, int, int, int, int)'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(96,9): error C2664: 'void OutputDebugStringW(LPCWSTR)': cannot convert argument 1 from 'const char [21]' to 'LPCWSTR'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(96,27):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\um\debugapi.h(61,1):
+      see declaration of 'OutputDebugStringW'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(96,9):
+      while trying to match the argument list '(const char [21])'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(110,1): error C2733: 'DDCopyBitmap': you cannot overload a function with 'extern "C"' linkage
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.h(21,29):
+      see declaration of 'DDCopyBitmap'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(130,9): error C2664: 'void OutputDebugStringW(LPCWSTR)': cannot convert argument 1 from 'const char [28]' to 'LPCWSTR'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(130,27):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\um\debugapi.h(61,1):
+      see declaration of 'OutputDebugStringW'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(130,9):
+      while trying to match the argument list '(const char [28])'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(165,1): error C2733: 'DDLoadPalette': you cannot overload a function with 'extern "C"' linkage
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.h(18,29):
+      see declaration of 'DDLoadPalette'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(189,26): error C2664: 'HRSRC FindResourceW(HMODULE,LPCWSTR,LPCWSTR)': cannot convert argument 2 from 'LPCSTR' to 'LPCWSTR'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(189,45):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\um\libloaderapi.h(579,1):
+      see declaration of 'FindResourceW'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(189,26):
+      while trying to match the argument list '(int, LPCSTR, LPWSTR)'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(193,13): error C2664: 'void OutputDebugStringW(LPCWSTR)': cannot convert argument 1 from 'const char [22]' to 'LPCWSTR'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(193,31):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\um\debugapi.h(61,1):
+      see declaration of 'OutputDebugStringW'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(193,13):
+      while trying to match the argument list '(const char [22])'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(258,1): error C2733: 'DDColorMatch': you cannot overload a function with 'extern "C"' linkage
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.h(22,29):
+      see declaration of 'DDColorMatch'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(309,1): error C2733: 'DDSetColorKey': you cannot overload a function with 'extern "C"' linkage
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.h(23,29):
+      see declaration of 'DDSetColorKey'
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(313,33): error C2664: 'DWORD DDColorMatch(IDirectDrawSurface *,COLORREF)': cannot convert argument 1 from 'IDirectDrawSurface7 *' to 'IDirectDrawSurface *'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(313,46):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.h(22,29):
+      see declaration of 'DDColorMatch'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex2\ddutil.cpp(313,33):
+      while trying to match the argument list '(IDirectDrawSurface7 *, COLORREF)'
+  
+  Generating Code...
