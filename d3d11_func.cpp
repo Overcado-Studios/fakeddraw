@@ -1,7 +1,8 @@
-#include <Windows.h>
 #include <d3d11_4.h>
 #include <dxgi1_6.h>
 #include <ddraw.h>
+#include <d3dcompiler.h>
+
 //#include <d3d.h>
 
 typedef struct _D3DVIEWPORT7 {
@@ -16,12 +17,29 @@ typedef struct _D3DVIEWPORT7 {
 #include "d3d11_func.h"
 #include "nvdebug.h"
 
-
-
 #define D3D11_SURF_FLAG_FRONTBUFFER		0x1
 #define D3D11_SURF_FLAG_BACKBUFFER		0x2
 #define D3D11_SURF_FLAG_TEXTURE			0x4
 #define D3D11_SURF_FLAG_ZBUFFER			0x8
+
+ComPtr<ID3D11VertexShader> D3D11Func_CreateVertexShader(D3D11** ppd3d, const std::wstring& fileName, ComPtr<ID3DBlob>& vertexShaderBlob);
+ComPtr<ID3D11PixelShader> D3D11Func_CreatePixelShader(D3D11** ppd3d, const std::wstring& fileName);
+
+bool	D3D11Func_ShaderManager_Init(D3D11** ppd3d);
+bool	D3D11Func_ShaderManager_Shutdown(D3D11** ppd3d);
+
+bool	D3D11Func_CompileShader(const std::wstring& fileName,
+	const std::string& entryPoint,
+	const std::string& profile, ComPtr<ID3DBlob>& shaderBlob);
+bool	D3D11Func_CreateVertexShaderInputLayout(D3D11** ppd3d);
+bool	D3D11Func_CreateVertexBuffer(D3D11** ppd3d);
+
+
+struct VertexProperties
+{
+	DirectX::XMFLOAT3 position;
+	DirectX::XMFLOAT3 color;
+};
 
 struct D3D11
 {
@@ -33,6 +51,13 @@ struct D3D11
 	GUID*			ddrawguid;
 	HWND			hwnd;
 	D3D11_VIEWPORT	vp;
+
+	// default (we can refactor pipeline to use this shader later, but for now this stays)
+	ComPtr<ID3D11VertexShader> testVS = nullptr;
+	ComPtr<ID3D11PixelShader> testPS = nullptr;
+	ComPtr<ID3DBlob> testVSBlob = nullptr;
+	ComPtr<ID3D11InputLayout> testInputLayout = nullptr;
+	ComPtr<ID3D11Buffer> testTriangleVertices = nullptr;
 };
 
 struct D3D11Surface
@@ -128,6 +153,210 @@ void D3D11Func_ReleaseDevice( D3D11** ppd3d )
 		(*ppd3d)->device->Release();
 	if( (*ppd3d)->context )
 		(*ppd3d)->context->Release();
+
+	D3D11Func_ShaderManager_Shutdown(ppd3d);
+}
+
+// create a simple pipeline
+bool D3D11Func_InitializeShaderSystem(D3D11** ppd3d)
+{
+	bool bRet = D3D11Func_ShaderManager_Init(ppd3d);
+	if (!bRet)
+		return false;
+
+	bRet = D3D11Func_CreateVertexShaderInputLayout(ppd3d);
+	if (!bRet)
+		return false;
+
+	bRet = D3D11Func_CreateVertexBuffer(ppd3d);
+	if (!bRet)
+		return false;
+
+	return false;
+}
+
+bool D3D11Func_ShaderManager_Init( D3D11** ppd3d )
+{
+	(*ppd3d)->testVS = D3D11Func_CreateVertexShader(ppd3d, L"C:\\Projects\\Overcado\\laghaim-front-end\\fakeddraw\\shaders\\Main.vs.hlsl", (*ppd3d)->testVSBlob);
+
+	if ((*ppd3d)->testVS == nullptr)
+	{
+		return false;
+	}
+
+	(*ppd3d)->testPS = D3D11Func_CreatePixelShader(ppd3d, L"C:\\Projects\\Overcado\\laghaim-front-end\\fakeddraw\\shaders\\Main.ps.hlsl");
+	if ((*ppd3d)->testVS == nullptr)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool D3D11Func_ShaderManager_Shutdown(D3D11** ppd3d)
+{
+	if ((*ppd3d)->testVS)
+	{
+		(*ppd3d)->testVS->Release();
+	}
+
+	if ((*ppd3d)->testPS)
+	{
+		(*ppd3d)->testPS->Release();
+	}
+
+	if ((*ppd3d)->testVSBlob)
+	{
+		(*ppd3d)->testVSBlob->Release();
+	}
+
+	return true;
+}
+
+bool D3D11Func_CompileShader(const std::wstring& fileName,
+	const std::string& entryPoint,
+	const std::string& profile, ComPtr<ID3DBlob>& shaderBlob)
+{
+	constexpr UINT compileFlags = D3DCOMPILE_ENABLE_STRICTNESS;
+
+	ComPtr<ID3DBlob> tempShaderBlob = nullptr;
+	ComPtr<ID3DBlob> errorBlob = nullptr;
+
+	HRESULT hr = D3DCompileFromFile(fileName.data(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		entryPoint.data(), profile.data(), compileFlags, 0, &tempShaderBlob, &errorBlob);
+
+	if (FAILED(hr))
+	{
+		std::cout << "D3D11: Failed to read shader from file\n";
+		if (errorBlob != nullptr)
+		{
+			std::cout << "D3D11: With message: " <<
+				static_cast<const char*>(errorBlob->GetBufferPointer()) << "\n";
+		}
+
+		return false;
+	}
+
+	shaderBlob = std::move(tempShaderBlob);
+	return true;
+}
+
+
+bool D3D11Func_CreateVertexShaderInputLayout(D3D11** ppd3d)
+{
+	constexpr D3D11_INPUT_ELEMENT_DESC vertexInputLayoutInfo[] = {
+		{
+			"POSITION",
+			0,
+			DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT,
+			0,
+			offsetof(VertexProperties, position),
+			D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA,
+			0
+		},
+		{
+			"COLOR",
+			0,
+			DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT,
+			0,
+			offsetof(VertexProperties,    color),
+			D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA,
+			0
+		},
+	};
+
+	HRESULT hr = (*ppd3d)->device->CreateInputLayout(
+		vertexInputLayoutInfo,
+		_countof(vertexInputLayoutInfo),
+		(*ppd3d)->testVSBlob->GetBufferPointer(),
+		(*ppd3d)->testVSBlob->GetBufferSize(),
+		&(*ppd3d)->testInputLayout);
+
+	if (FAILED(hr))
+	{
+		DISPDBG_FP(0, "ERROR: D3D11: Failed to create default vertex input layout" << std::hex << hr);
+		return false;
+	}
+
+	return true;
+}
+
+bool D3D11Func_CreateVertexBuffer(D3D11** ppd3d)
+{
+	constexpr VertexProperties vertices[] = {
+	{  DirectX::XMFLOAT3{ 0.0f, 0.5f, 0.0f }, DirectX::XMFLOAT3{ 0.25f, 0.39f, 0.19f }},
+	{  DirectX::XMFLOAT3{ 0.5f, -0.5f, 0.0f }, DirectX::XMFLOAT3{ 0.44f, 0.75f, 0.35f }},
+	{  DirectX::XMFLOAT3{ -0.5f, -0.5f, 0.0f }, DirectX::XMFLOAT3{ 0.38f, 0.55f, 0.20f }},
+	};
+	D3D11_BUFFER_DESC bufferInfo = {};
+	bufferInfo.ByteWidth = sizeof(vertices);
+	bufferInfo.Usage = D3D11_USAGE::D3D11_USAGE_IMMUTABLE;
+	bufferInfo.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
+
+	D3D11_SUBRESOURCE_DATA resourceData = {};
+	resourceData.pSysMem = vertices;
+
+	HRESULT hr = (*ppd3d)->device->CreateBuffer(
+		&bufferInfo,
+		&resourceData,
+		&(*ppd3d)->testTriangleVertices);
+
+	if (FAILED(hr))
+	{
+		DISPDBG_FP(0, "ERROR: D3D11: Failed to create triangle vertex buffer" << std::hex << hr);
+		return false;
+	}
+
+	return true;
+}
+
+ComPtr<ID3D11VertexShader> D3D11Func_CreateVertexShader(D3D11** ppd3d, const std::wstring& fileName, ComPtr<ID3DBlob>& vertexShaderBlob)
+{
+	if (!D3D11Func_CompileShader(fileName, "Main", "vs_5_0", vertexShaderBlob))
+	{
+		return nullptr;
+	}
+
+	ComPtr<ID3D11VertexShader> vertexShader;
+
+	HRESULT hr = (*ppd3d)->device->CreateVertexShader(
+		vertexShaderBlob->GetBufferPointer(),
+		vertexShaderBlob->GetBufferSize(),
+		nullptr,
+		&vertexShader);
+
+	if (FAILED(hr))
+	{
+		DISPDBG_FP(0, "ERROR: D3D11: Failed to compile vertex shader" << std::hex << hr);
+		return nullptr;
+	}
+
+	return vertexShader;
+}
+
+ComPtr<ID3D11PixelShader> D3D11Func_CreatePixelShader(D3D11** ppd3d, const std::wstring& fileName)
+{
+	ComPtr<ID3DBlob> pixelShaderBlob = nullptr;
+	if (!D3D11Func_CompileShader(fileName, "Main", "ps_5_0", pixelShaderBlob))
+	{
+		return nullptr;
+	}
+
+	ComPtr<ID3D11PixelShader> pixelShader;
+
+	HRESULT hr = (*ppd3d)->device->CreatePixelShader(
+		pixelShaderBlob->GetBufferPointer(),
+		pixelShaderBlob->GetBufferSize(),
+		nullptr,
+		&pixelShader);
+
+	if (FAILED(hr))
+	{
+		DISPDBG_FP(0, "ERROR: D3D11: Failed to compile pixel shader" << std::hex << hr);
+		return nullptr;
+	}
+
+	return pixelShader;
 }
 
 HRESULT D3D11Func_SetDisplayMode( D3D11* d3d, int width, int height, int bpp, int refresh_rate, int fullscreen )
@@ -135,7 +364,7 @@ HRESULT D3D11Func_SetDisplayMode( D3D11* d3d, int width, int height, int bpp, in
 	HRESULT hr;
 	DXGI_MODE_DESC dmd;
 
-#if 0 // Force windowed mode for testing purposes
+#if 1 // Force windowed mode for testing purposes
 	fullscreen = 0;
 #endif
 
@@ -333,6 +562,21 @@ HRESULT D3D11Func_SetViewport( D3D11* d3d, D3DVIEWPORT7* vp )
 	return S_OK; 
 }
 
+HRESULT D3D11Func_SetViewport2(D3D11* d3d)
+{
+	D3D11_VIEWPORT vp11;
+	vp11.TopLeftX = 0;
+	vp11.TopLeftY = 0;
+	vp11.Width = 640;
+	vp11.Height = 480;
+	vp11.MinDepth = 0;
+	vp11.MaxDepth = 1;
+
+	d3d->context->RSSetViewports(1, &vp11);
+
+	return S_OK;
+}
+
 HRESULT D3D11Func_ClearRT( D3D11* d3d, DWORD dwColour )
 {
 	float fC[4];
@@ -379,6 +623,64 @@ HRESULT D3D11Func_GetDisplayMode( D3D11* d3d, DDSURFACEDESC2* pddsd )
 	return d3d->ddraw->GetDisplayMode( pddsd );
 }
 
+HRESULT D3D11Func_SetInputLayout(D3D11* d3d)
+{
+	d3d->context->IASetInputLayout(d3d->testInputLayout.Get());
+
+	return S_OK;
+}
+
+HRESULT D3D11Func_SetVertexBuffers(D3D11* d3d)
+{
+	constexpr UINT vertexStride = sizeof(VertexProperties);
+	constexpr UINT vertexOffset = 0;
+
+	d3d->context->IASetVertexBuffers(
+		0,
+		1,
+		d3d->testTriangleVertices.GetAddressOf(),
+		&vertexStride,
+		&vertexOffset);
+
+	d3d->context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	return S_OK;
+}
+
+HRESULT D3D11Func_SetVertexShader(D3D11* d3d)
+{
+	d3d->context->VSSetShader(
+		d3d->testVS.Get(),
+		nullptr,
+		0);
+
+	return S_OK;
+}
+
+HRESULT D3D11Func_SetPixelShader(D3D11* d3d)
+{
+	d3d->context->PSSetShader(
+		d3d->testPS.Get(),
+		nullptr,
+		0);
+
+	return S_OK;
+}
+
+HRESULT D3D11Func_Draw(D3D11* d3d)
+{
+	d3d->context->Draw(3, 0);
+
+	return E_NOTIMPL;
+}
+
+
+HRESULT D3D11Func_SetRenderTarget(D3D11* d3d, D3D11Surface** ppsurface)
+{
+	d3d->context->OMSetRenderTargets(1, &(*ppsurface)->rtv, NULL);
+
+	return S_OK;
+}
 
 /***********************************************************\
  *            Direct3D11 Surface functionality             *

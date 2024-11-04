@@ -241,14 +241,14 @@ struct IDirectDrawPaletteFakeVtbl;
 DECLARE_INTERFACE_( IDirectDrawPaletteFake, IUnknownFake )
 {
     /*** IUnknown methods ***/
-    STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) PURE;
-    STDMETHOD_(ULONG,AddRef) (THIS)  PURE;
-    STDMETHOD_(ULONG,Release) (THIS) PURE;
+    STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
+    STDMETHOD_(ULONG,AddRef) (THIS);
+    STDMETHOD_(ULONG,Release) (THIS);
     /*** IDirectDrawPalette methods ***/
-    STDMETHOD(GetCaps)(THIS_ LPDWORD) PURE;
-    STDMETHOD(GetEntries)(THIS_ DWORD,DWORD,DWORD,LPPALETTEENTRY) PURE;
-    STDMETHOD(Initialize)(THIS_ IDirectDrawFake*, DWORD, LPPALETTEENTRY) PURE;
-    STDMETHOD(SetEntries)(THIS_ DWORD,DWORD,DWORD,LPPALETTEENTRY) PURE;
+    STDMETHOD(GetCaps)(THIS_ LPDWORD);
+    STDMETHOD(GetEntries)(THIS_ DWORD,DWORD,DWORD,LPPALETTEENTRY);
+    STDMETHOD(Initialize)(THIS_ IDirectDrawFake*, DWORD, LPPALETTEENTRY);
+    STDMETHOD(SetEntries)(THIS_ DWORD,DWORD,DWORD,LPPALETTEENTRY);
 };
 #endif
 

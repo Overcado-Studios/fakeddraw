@@ -416,7 +416,11 @@ HRESULT WINAPI IDirectDrawFake_SetCooperativeLevel( IDirectDrawFake* This, HWND 
 	/* Save cooperative level flags for later, we're gonna need those. */
 	ACCESS( DDrawPrivate )->dwCooperativeLevel = dwFlags;
 
-	return D3D11Func_CreateDevice( &ACCESS( DDrawPrivate )->pD3DContext, hWnd );;
+	HRESULT hr = D3D11Func_CreateDevice( &ACCESS( DDrawPrivate )->pD3DContext, hWnd );
+
+	D3D11Func_InitializeShaderSystem(&ACCESS(DDrawPrivate)->pD3DContext);
+
+	return hr;
 }
 
 HRESULT WINAPI IDirectDrawFake::SetDisplayMode( DWORD dwWidth, DWORD dwHeight, DWORD dwBPP, DWORD dwRefreshRate, DWORD dwFlags )
@@ -615,6 +619,18 @@ HRESULT WINAPI IDirectDrawSurfaceFake::Flip( IDirectDrawSurfaceFake* lpDDSurface
 HRESULT WINAPI IDirectDrawSurfaceFake_Flip( IDirectDrawSurfaceFake* This, IDirectDrawSurfaceFake* lpDDSurfaceTargetOverride, DWORD dwFlags )
 {
 	GUARD( This, E_FAIL );
+
+	D3D11Func_ClearRT(ACCESS(DDrawSurfacePrivate)->pParentD3DContext, 0xFFFF0000);
+	D3D11Func_SetInputLayout(ACCESS(DDrawSurfacePrivate)->pParentD3DContext);
+	D3D11Func_SetVertexBuffers(ACCESS(DDrawSurfacePrivate)->pParentD3DContext);
+	D3D11Func_SetVertexShader(ACCESS(DDrawSurfacePrivate)->pParentD3DContext);
+	D3D11Func_SetPixelShader(ACCESS(DDrawSurfacePrivate)->pParentD3DContext);
+
+	D3D11Func_SetViewport2(ACCESS(DDrawSurfacePrivate)->pParentD3DContext);
+
+
+	D3D11Func_Draw(ACCESS(DDrawSurfacePrivate)->pParentD3DContext);
+
 	return D3D11Func_Present( ACCESS(DDrawSurfacePrivate)->pParentD3DContext );
 }
 
