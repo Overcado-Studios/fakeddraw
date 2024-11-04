@@ -215,6 +215,7 @@ HRESULT WINAPI IDirectDrawFake_CreateSurface( IDirectDrawFake* This, LPDDSURFACE
 
 	_ACCESS(DDrawSurfacePrivate, (*lplpDDSurface))->pParentD3DContext = ACCESS(DDrawPrivate)->pD3DContext;
 	_ACCESS(DDrawSurfacePrivate, (*lplpDDSurface))->RefCount = 1;
+	_ACCESS(DDrawSurfacePrivate, (*lplpDDSurface))->ddsd = *lpDDSurfaceDesc2;
 
 	return DD_OK;
 }
@@ -684,6 +685,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake_GetAttachedSurface( IDirectDrawSurfaceFake
 
 	_ACCESS(DDrawSurfacePrivate, (*lplpDDAttachedSurface))->pParentD3DContext = ACCESS(DDrawSurfacePrivate)->pParentD3DContext;
 	_ACCESS(DDrawSurfacePrivate, (*lplpDDAttachedSurface))->RefCount = 1;
+	_ACCESS(DDrawSurfacePrivate, (*lplpDDAttachedSurface))->ddsd = ddsd;
 
 	return DD_OK;
 }

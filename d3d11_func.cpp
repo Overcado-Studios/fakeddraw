@@ -466,10 +466,7 @@ HRESULT D3D11Func_CreateSurface( D3D11* d3d, D3D11Surface** ppsurface, DDSURFACE
 		if( !(*ppsurface) )
 			return E_OUTOFMEMORY;
 
-		memset( (*ppsurface), 0, sizeof( D3D11Surface ) );
-
-		/* We'll need this later */
-		memmove( &(*ppsurface)->ddsd, pddsd, sizeof( DDSURFACEDESC2 ) );
+		memset((*ppsurface), 0, sizeof(D3D11Surface));
 
 		/* Frontbuffer creation */
 		if( pddsd->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE )
@@ -497,6 +494,12 @@ HRESULT D3D11Func_CreateSurface( D3D11* d3d, D3D11Surface** ppsurface, DDSURFACE
 
 			d3d->context->OMSetRenderTargets( 1, &(*ppsurface)->rtv, NULL );
 
+			D3D11_TEXTURE2D_DESC desc2D;
+			(*ppsurface)->texture->GetDesc(&desc2D);
+
+			pddsd->dwWidth = desc2D.Width;
+			pddsd->dwHeight = desc2D.Height;
+
 			//return DD_OK;
 
 			/*if( SUCCEEDED( hr ) )
@@ -521,6 +524,10 @@ HRESULT D3D11Func_CreateSurface( D3D11* d3d, D3D11Surface** ppsurface, DDSURFACE
 		}
 		else
 			return E_INVALIDARG;
+
+
+		/* We'll need this later */
+		memmove(&(*ppsurface)->ddsd, pddsd, sizeof(DDSURFACEDESC2));
 
 		return DD_OK;
 	}
