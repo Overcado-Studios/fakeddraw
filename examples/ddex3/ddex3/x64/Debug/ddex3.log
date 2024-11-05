@@ -1,0 +1,9 @@
+﻿  ddex3.cpp
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex3\ddex3.cpp(290,25): warning C4244: 'return': conversion from 'LRESULT' to 'long', possible loss of data
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex3\ddex3.cpp(312,22): error C2440: '=': cannot convert from 'long (__cdecl *)(HWND,UINT,WPARAM,LPARAM)' to 'WNDPROC'
+      C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex3\ddex3.cpp(312,22):
+      This conversion requires a reinterpret_cast, a C-style cast or parenthesized function-style cast
+  
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex3\ddex3.cpp(429,15): warning C4244: 'return': conversion from 'WPARAM' to 'int', possible loss of data
+  ddutil.cpp
+  Generating Code...

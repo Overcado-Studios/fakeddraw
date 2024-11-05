@@ -42,19 +42,30 @@
 //-----------------------------------------------------------------------------
 // Global data
 //-----------------------------------------------------------------------------
-LPDIRECTDRAW7               g_pDD = NULL;        // DirectDraw object
-LPDIRECTDRAWSURFACE7        g_pDDSPrimary = NULL;// DirectDraw primary surface
-LPDIRECTDRAWSURFACE7        g_pDDSBack = NULL;   // DirectDraw back surface
-LPDIRECTDRAWSURFACE7        g_pDDSOne = NULL;    // Offscreen surface 1
-LPDIRECTDRAWSURFACE7        g_pDDSTwo = NULL;    // Offscreen surface 2
-LPDIRECTDRAWPALETTE         g_pDDPal = NULL;     // The primary surface palette
+//LPDIRECTDRAW7               g_pDD = NULL;        // DirectDraw object
+//LPDIRECTDRAWSURFACE7        g_pDDSPrimary = NULL;// DirectDraw primary surface
+//LPDIRECTDRAWSURFACE7        g_pDDSBack = NULL;   // DirectDraw back surface
+//LPDIRECTDRAWSURFACE7        g_pDDSOne = NULL;    // Offscreen surface 1
+//LPDIRECTDRAWSURFACE7        g_pDDSTwo = NULL;    // Offscreen surface 2
+//LPDIRECTDRAWPALETTE         g_pDDPal = NULL;     // The primary surface palette
+//BOOL                        g_bActive = FALSE;   // Is application active?
+
+//-----------------------------------------------------------------------------
+// Global data
+//-----------------------------------------------------------------------------
+IDirectDrawFake* g_pDD = NULL;        // DirectDraw object
+IDirectDrawSurfaceFake* g_pDDSPrimary = NULL;// DirectDraw primary surface
+IDirectDrawSurfaceFake* g_pDDSBack = NULL;   // DirectDraw back surface
+IDirectDrawSurfaceFake*        g_pDDSOne = NULL;    // Offscreen surface 1
+IDirectDrawSurfaceFake*        g_pDDSTwo = NULL;    // Offscreen surface 2
+IDirectDrawPaletteFake* g_pDDPal = NULL;
 BOOL                        g_bActive = FALSE;   // Is application active?
 
 //-----------------------------------------------------------------------------
 // Local data
 //-----------------------------------------------------------------------------
 // Name of our bitmap resource.
-static char                 szBitmap[] = "DDEX3";
+static char                 szBitmap[] = "back.bmp";
 
 
 
@@ -107,7 +118,7 @@ InitFail(HWND hWnd, HRESULT hRet, LPCTSTR szError,...)
     va_list                     vl;
 
     va_start(vl, szError);
-    vsprintf(szBuff, szError, vl);
+    vsprintf_s(szBuff, szError, vl);
     ReleaseAllObjects();
     MessageBox(hWnd, szBuff, TITLE, MB_OK);
     DestroyWindow(hWnd);
@@ -131,11 +142,17 @@ InitSurfaces(void)
     // Load our bitmap resource.
     hbm = (HBITMAP) LoadImage(GetModuleHandle(NULL), szBitmap, IMAGE_BITMAP, 0,
                               0, LR_CREATEDIBSECTION);
+
+    if (hbm == NULL)
+        hbm = (HBITMAP)LoadImage(NULL, szBitmap, IMAGE_BITMAP, 0, 0,
+            LR_LOADFROMFILE | LR_CREATEDIBSECTION);
+
     if (hbm == NULL)
         return FALSE;
 
     DDCopyBitmap(g_pDDSOne, hbm, 0, 0, 640, 480);
     DDCopyBitmap(g_pDDSTwo, hbm, 0, 480, 640, 480);
+
     DeleteObject(hbm);
     return TRUE;
 }
@@ -180,7 +197,7 @@ UpdateFrame(HWND hWnd)
 {
     static BYTE                 phase = 0;
     HRESULT                     hRet;
-    LPDIRECTDRAWSURFACE7        pdds;
+    IDirectDrawSurfaceFake*     pdds;
     RECT                        rcRect;
 
     rcRect.left = 0;
@@ -331,7 +348,7 @@ InitApp(HINSTANCE hInstance, int nCmdShow)
     ///////////////////////////////////////////////////////////////////////////
     // Create the main DirectDraw object
     ///////////////////////////////////////////////////////////////////////////
-    hRet = DirectDrawCreateEx(NULL, (VOID**)&g_pDD, IID_IDirectDraw7, NULL);
+    hRet = DirectDrawFakeCreateEx(NULL, (VOID**)&g_pDD, IID_IDirectDraw7, NULL);
     if (hRet != DD_OK)
         return InitFail(hWnd, hRet, "DirectDrawCreateEx FAILED");
 
@@ -379,9 +396,9 @@ InitApp(HINSTANCE hInstance, int nCmdShow)
         return InitFail(hWnd, hRet, "CreateSurface FAILED");
 
     // Create a Direct Draw Palette and associate it with the front buffer
-    g_pDDPal = DDLoadPalette(g_pDD, szBitmap);
-    if (g_pDDPal)
-        g_pDDSPrimary->SetPalette(g_pDDPal);
+    //g_pDDPal = DDLoadPalette(g_pDD, szBitmap);
+   // if (g_pDDPal)
+    //    g_pDDSPrimary->SetPalette(g_pDDPal);
     if (!InitSurfaces())
         return InitFail(hWnd, hRet, "InitSurfaces FAILED");
 

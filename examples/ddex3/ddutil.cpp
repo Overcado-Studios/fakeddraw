@@ -16,7 +16,6 @@
 //-----------------------------------------------------------------------------
 #include <windows.h>
 #include <windowsx.h>
-#include <ddraw.h>
 #include "ddutil.h"
 
 
@@ -26,13 +25,13 @@
 // Name: DDLoadBitmap()
 // Desc: Create a DirectDrawSurface from a bitmap resource.
 //-----------------------------------------------------------------------------
-extern "C" IDirectDrawSurface7*
-DDLoadBitmap(IDirectDraw7 * pdd, LPCSTR szBitmap, int dx, int dy)
+extern "C" IDirectDrawSurfaceFake* 
+DDLoadBitmap( IDirectDrawFake* pdd, LPCSTR szBitmap, int dx, int dy)
 {
     HBITMAP                 hbm;
     BITMAP                  bm;
     DDSURFACEDESC2          ddsd;
-    IDirectDrawSurface7    *pdds;
+    IDirectDrawSurfaceFake   *pdds;
 
     //
     //  Try to load the bitmap as a resource, if that fails, try it as a file
@@ -72,8 +71,7 @@ DDLoadBitmap(IDirectDraw7 * pdd, LPCSTR szBitmap, int dx, int dy)
 // Desc: Load a bitmap from a file or resource into a directdraw surface.
 //       normaly used to re-load a surface after a restore.
 //-----------------------------------------------------------------------------
-HRESULT
-DDReLoadBitmap(IDirectDrawSurface7 * pdds, LPCSTR szBitmap)
+HRESULT DDReLoadBitmap( IDirectDrawSurfaceFake* pdds, LPCSTR szBitmap)
 {
     HBITMAP                 hbm;
     HRESULT                 hr;
@@ -108,7 +106,7 @@ DDReLoadBitmap(IDirectDrawSurface7 * pdds, LPCSTR szBitmap)
 // Desc: Draw a bitmap into a DirectDrawSurface
 //-----------------------------------------------------------------------------
 extern "C" HRESULT
-DDCopyBitmap(IDirectDrawSurface7 * pdds, HBITMAP hbm, int x, int y,
+DDCopyBitmap(IDirectDrawSurfaceFake* pdds, HBITMAP hbm, int x, int y,
              int dx, int dy)
 {
     HDC                     hdcImage;
@@ -162,10 +160,10 @@ DDCopyBitmap(IDirectDrawSurface7 * pdds, HBITMAP hbm, int x, int y,
 //       if the resource does not exist or NULL is passed create a
 //       default 332 palette.
 //-----------------------------------------------------------------------------
-extern "C" IDirectDrawPalette *
-DDLoadPalette(IDirectDraw7 * pdd, LPCSTR szBitmap)
+extern "C" IDirectDrawPaletteFake *
+DDLoadPalette(IDirectDrawFake* pdd, LPCSTR szBitmap)
 {
-    IDirectDrawPalette     *ddpal;
+    IDirectDrawPaletteFake  *ddpal;
     int                     i;
     int                     n;
     int                     fh;
@@ -256,7 +254,7 @@ DDLoadPalette(IDirectDraw7 * pdd, LPCSTR szBitmap)
 //       then we lock the memory and see what it got mapped to.
 //-----------------------------------------------------------------------------
 extern "C" DWORD
-DDColorMatch(IDirectDrawSurface7 * pdds, COLORREF rgb)
+DDColorMatch(IDirectDrawSurfaceFake* pdds, COLORREF rgb)
 {
     COLORREF                rgbT;
     HDC                     hdc;
@@ -307,7 +305,7 @@ DDColorMatch(IDirectDrawSurface7 * pdds, COLORREF rgb)
 //       in the upper-left corner will be used.
 //-----------------------------------------------------------------------------
 extern "C" HRESULT
-DDSetColorKey(IDirectDrawSurface7 * pdds, COLORREF rgb)
+DDSetColorKey(IDirectDrawSurfaceFake* pdds, COLORREF rgb)
 {
     DDCOLORKEY              ddck;
 

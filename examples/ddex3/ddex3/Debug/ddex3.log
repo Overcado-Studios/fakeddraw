@@ -1,0 +1,7 @@
+﻿  d3d11_func.cpp
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\d3d11_func.cpp(559,20): warning C4244: '=': conversion from 'DWORD' to 'FLOAT', possible loss of data
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\d3d11_func.cpp(560,20): warning C4244: '=': conversion from 'DWORD' to 'FLOAT', possible loss of data
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\d3d11_func.cpp(561,17): warning C4244: '=': conversion from 'DWORD' to 'FLOAT', possible loss of data
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\d3d11_func.cpp(562,18): warning C4244: '=': conversion from 'DWORD' to 'FLOAT', possible loss of data
+C:\Projects\Overcado\laghaim-front-end\fakeddraw\d3d11_func.cpp(617,73): warning C4244: 'argument': conversion from 'DWORD' to 'UINT8', possible loss of data
+  ddex3.vcxproj -> C:\Projects\Overcado\laghaim-front-end\fakeddraw\examples\ddex3\Debug\ddex3.exe
