@@ -597,7 +597,13 @@ HRESULT WINAPI IDirectDrawSurfaceFake::BltFast( DWORD dwX,DWORD dwY, IDirectDraw
 
 HRESULT WINAPI IDirectDrawSurfaceFake_BltFast( IDirectDrawSurfaceFake* This, DWORD dwX,DWORD dwY, IDirectDrawSurfaceFake* lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans )
 {
-	LOGUNIMPL_F;
+	RECT dstRect;
+	dstRect.left = dwX;
+	dstRect.top = dwY;
+	dstRect.right = dwX + lpSrcRect->right - lpSrcRect->left;
+	dstRect.bottom = dwY + lpSrcRect->bottom - lpSrcRect->top;
+	
+	return D3D11SurfaceFunc_BltFast(ACCESS(DDrawSurfacePrivate)->pParentD3DContext, ACCESS(DDrawSurfacePrivate)->pSurface, &dstRect, lpSrcRect, dwTrans);
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::ChangeUniquenessValue()
@@ -648,17 +654,6 @@ HRESULT WINAPI IDirectDrawSurfaceFake::Flip( IDirectDrawSurfaceFake* lpDDSurface
 HRESULT WINAPI IDirectDrawSurfaceFake_Flip( IDirectDrawSurfaceFake* This, IDirectDrawSurfaceFake* lpDDSurfaceTargetOverride, DWORD dwFlags )
 {
 	GUARD( This, E_FAIL );
-
-	//D3D11Func_ClearRT(ACCESS(DDrawSurfacePrivate)->pParentD3DContext, 0xFFFF0000);
-	//D3D11Func_SetInputLayout(ACCESS(DDrawSurfacePrivate)->pParentD3DContext);
-	//D3D11Func_SetVertexBuffers(ACCESS(DDrawSurfacePrivate)->pParentD3DContext);
-	//D3D11Func_SetVertexShader(ACCESS(DDrawSurfacePrivate)->pParentD3DContext);
-	//D3D11Func_SetPixelShader(ACCESS(DDrawSurfacePrivate)->pParentD3DContext);
-
-	//D3D11Func_SetViewport2(ACCESS(DDrawSurfacePrivate)->pParentD3DContext);
-
-
-	//D3D11Func_Draw(ACCESS(DDrawSurfacePrivate)->pParentD3DContext);
 
 	return D3D11Func_Present( ACCESS(DDrawSurfacePrivate)->pParentD3DContext );
 }

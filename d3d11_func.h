@@ -35,14 +35,10 @@ HRESULT D3D11Func_SetViewport2(D3D11* d3d); // TODO: remove
 HRESULT D3D11Func_ClearRT( D3D11* d3d, DWORD dwColour );
 HRESULT D3D11Func_ClearDS( D3D11* d3d, DWORD flag, float z, DWORD stencil );
 HRESULT D3D11Func_GetDisplayMode( D3D11* d3d, DDSURFACEDESC2* pddsd );
-HRESULT D3D11Func_SetInputLayout(D3D11* d3d);
-HRESULT D3D11Func_SetVertexBuffers(D3D11* d3d);
-HRESULT D3D11Func_SetVertexShader(D3D11* d3d);
-HRESULT D3D11Func_SetPixelShader(D3D11* d3d);
-HRESULT D3D11Func_Draw(D3D11* d3d);
 HRESULT D3D11Func_SetRenderTarget(D3D11* d3d, D3D11Surface** ppsurface);
 
 HRESULT D3D11SurfaceFunc_GetDC( D3D11Surface* surface, HDC* pDC );
 HRESULT D3D11SurfaceFunc_ReleaseDC( D3D11Surface* surface, HDC* pDC );
 HRESULT D3D11SurfaceFunc_GetParentContext( D3D11Surface*, D3D11** ppd3d );
 HRESULT D3D11SurfaceFunc_Blt( D3D11* d3d, D3D11Surface* surface,  LPRECT lpDestRect, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx );
+HRESULT D3D11SurfaceFunc_BltFast( D3D11* d3d, D3D11Surface* surface, LPRECT lpDestRect, LPRECT lpSrcRect, DWORD dwTrans );

@@ -22,8 +22,26 @@ typedef struct _D3DVIEWPORT7 {
 #define D3D11_SURF_FLAG_TEXTURE			0x4
 #define D3D11_SURF_FLAG_ZBUFFER			0x8
 
+// Private Members
+struct D3D11Pipeline
+{
+	ComPtr<ID3D11VertexShader> vertexShader = nullptr;
+	ComPtr<ID3D11PixelShader> pixelShader = nullptr;
+	ComPtr<ID3DBlob> vertexShaderBlob = nullptr;
+	ComPtr<ID3DBlob> pixelShaderBlob = nullptr;
+	ComPtr<ID3D11InputLayout> inputLayout = nullptr;
+	ComPtr<ID3D11Buffer> vertexBuffer = nullptr;
+};
+
+struct VertexProperties
+{
+	DirectX::XMFLOAT3 position;
+	DirectX::XMFLOAT3 color;
+};
+
 ComPtr<ID3D11VertexShader> D3D11Func_CreateVertexShader(D3D11** ppd3d, const std::wstring& fileName, ComPtr<ID3DBlob>& vertexShaderBlob);
-ComPtr<ID3D11PixelShader> D3D11Func_CreatePixelShader(D3D11** ppd3d, const std::wstring& fileName);
+ComPtr<ID3D11PixelShader> D3D11Func_CreatePixelShader(D3D11** ppd3d, const std::wstring& fileName, ComPtr<ID3DBlob>& pixelShaderBlob);
+bool D3D11Func_InitPipelineShaders(D3D11** ppd3d, D3D11Pipeline* pipeline);
 
 bool	D3D11Func_ShaderManager_Init(D3D11** ppd3d);
 bool	D3D11Func_ShaderManager_Shutdown(D3D11** ppd3d);
@@ -31,15 +49,8 @@ bool	D3D11Func_ShaderManager_Shutdown(D3D11** ppd3d);
 bool	D3D11Func_CompileShader(const std::wstring& fileName,
 	const std::string& entryPoint,
 	const std::string& profile, ComPtr<ID3DBlob>& shaderBlob);
-bool	D3D11Func_CreateVertexShaderInputLayout(D3D11** ppd3d);
-bool	D3D11Func_CreateVertexBuffer(D3D11** ppd3d);
-
-
-struct VertexProperties
-{
-	DirectX::XMFLOAT3 position;
-	DirectX::XMFLOAT3 color;
-};
+bool	D3D11Func_CreateVertexShaderInputLayout(D3D11** ppd3d, D3D11Pipeline* pipeline);
+bool	D3D11Func_CreateVertexBuffer(D3D11** ppd3d, D3D11Pipeline* pipeline);
 
 struct D3D11
 {
@@ -53,12 +64,16 @@ struct D3D11
 	D3D11_VIEWPORT	vp;
 
 	// default (we can refactor pipeline to use this shader later, but for now this stays)
-	ComPtr<ID3D11VertexShader> testVS = nullptr;
-	ComPtr<ID3D11PixelShader> testPS = nullptr;
-	ComPtr<ID3DBlob> testVSBlob = nullptr;
-	ComPtr<ID3D11InputLayout> testInputLayout = nullptr;
-	ComPtr<ID3D11Buffer> testTriangleVertices = nullptr;
+	//ComPtr<ID3D11VertexShader> testVS = nullptr;
+	//ComPtr<ID3D11PixelShader> testPS = nullptr;
+	//ComPtr<ID3DBlob> testVSBlob = nullptr;
+	//ComPtr<ID3D11InputLayout> testInputLayout = nullptr;
+	//ComPtr<ID3D11Buffer> testTriangleVertices = nullptr;
+
+	D3D11Pipeline	defaultBlitPipeline;
 };
+
+
 
 struct D3D11Surface
 {
@@ -154,7 +169,6 @@ void D3D11Func_ReleaseDevice( D3D11** ppd3d )
 	if( (*ppd3d)->context )
 		(*ppd3d)->context->Release();
 
-	D3D11Func_ShaderManager_Shutdown(ppd3d);
 }
 
 // create a simple pipeline
@@ -164,52 +178,73 @@ bool D3D11Func_InitializeShaderSystem(D3D11** ppd3d)
 	if (!bRet)
 		return false;
 
-	bRet = D3D11Func_CreateVertexShaderInputLayout(ppd3d);
-	if (!bRet)
-		return false;
-
-	bRet = D3D11Func_CreateVertexBuffer(ppd3d);
-	if (!bRet)
-		return false;
-
 	return false;
 }
 
-bool D3D11Func_ShaderManager_Init( D3D11** ppd3d )
+bool D3D11Func_InitPipelineShaders(D3D11** ppd3d, D3D11Pipeline* pipeline)
 {
-	(*ppd3d)->testVS = D3D11Func_CreateVertexShader(ppd3d, L"C:\\Projects\\Overcado\\laghaim-front-end\\fakeddraw\\shaders\\Main.vs.hlsl", (*ppd3d)->testVSBlob);
-
-	if ((*ppd3d)->testVS == nullptr)
+	// TODO: add variability
+	if (!pipeline->vertexShader)
 	{
-		return false;
+		pipeline->vertexShader = D3D11Func_CreateVertexShader(ppd3d, L"C:\\Projects\\Overcado\\laghaim-front-end\\fakeddraw\\shaders\\Main.vs.hlsl", pipeline->vertexShaderBlob);
+		if (pipeline->vertexShader == nullptr)
+		{
+			return false;
+		}
+	}
+	
+	if (!pipeline->pixelShader)
+	{
+		pipeline->pixelShader = D3D11Func_CreatePixelShader(ppd3d, L"C:\\Projects\\Overcado\\laghaim-front-end\\fakeddraw\\shaders\\Main.ps.hlsl", pipeline->pixelShaderBlob);
+		if (pipeline->pixelShader == nullptr)
+		{
+			return false;
+		}
+	}
+}
+
+bool D3D11Func_ShutdownPipelineResources(D3D11** ppd3d, D3D11Pipeline* pipeline)
+{
+	if (pipeline->vertexShader)
+	{
+		pipeline->vertexShader->Release();
 	}
 
-	(*ppd3d)->testPS = D3D11Func_CreatePixelShader(ppd3d, L"C:\\Projects\\Overcado\\laghaim-front-end\\fakeddraw\\shaders\\Main.ps.hlsl");
-	if ((*ppd3d)->testVS == nullptr)
+	if (pipeline->pixelShader)
 	{
-		return false;
+		pipeline->pixelShader->Release();
+	}
+
+	if (pipeline->vertexShaderBlob)
+	{
+		pipeline->vertexShaderBlob->Release();
+	}
+
+	if (pipeline->pixelShaderBlob)
+	{
+		pipeline->pixelShaderBlob->Release();
+	}
+
+	if (pipeline->inputLayout)
+	{
+		pipeline->inputLayout->Release();
+	}
+
+	if (pipeline->vertexBuffer)
+	{
+		pipeline->vertexBuffer->Release();
 	}
 
 	return true;
 }
 
+bool D3D11Func_ShaderManager_Init( D3D11** ppd3d )
+{
+	return true;
+}
+
 bool D3D11Func_ShaderManager_Shutdown(D3D11** ppd3d)
 {
-	if ((*ppd3d)->testVS)
-	{
-		(*ppd3d)->testVS->Release();
-	}
-
-	if ((*ppd3d)->testPS)
-	{
-		(*ppd3d)->testPS->Release();
-	}
-
-	if ((*ppd3d)->testVSBlob)
-	{
-		(*ppd3d)->testVSBlob->Release();
-	}
-
 	return true;
 }
 
@@ -242,8 +277,13 @@ bool D3D11Func_CompileShader(const std::wstring& fileName,
 }
 
 
-bool D3D11Func_CreateVertexShaderInputLayout(D3D11** ppd3d)
+bool D3D11Func_CreateVertexShaderInputLayout(D3D11** ppd3d, D3D11Pipeline* pipeline)
 {
+	if (pipeline->inputLayout)
+	{
+		return true;
+	}
+
 	constexpr D3D11_INPUT_ELEMENT_DESC vertexInputLayoutInfo[] = {
 		{
 			"POSITION",
@@ -268,9 +308,9 @@ bool D3D11Func_CreateVertexShaderInputLayout(D3D11** ppd3d)
 	HRESULT hr = (*ppd3d)->device->CreateInputLayout(
 		vertexInputLayoutInfo,
 		_countof(vertexInputLayoutInfo),
-		(*ppd3d)->testVSBlob->GetBufferPointer(),
-		(*ppd3d)->testVSBlob->GetBufferSize(),
-		&(*ppd3d)->testInputLayout);
+		pipeline->vertexShaderBlob->GetBufferPointer(),
+		pipeline->vertexShaderBlob->GetBufferSize(),
+		&pipeline->inputLayout);
 
 	if (FAILED(hr))
 	{
@@ -281,8 +321,13 @@ bool D3D11Func_CreateVertexShaderInputLayout(D3D11** ppd3d)
 	return true;
 }
 
-bool D3D11Func_CreateVertexBuffer(D3D11** ppd3d)
+bool D3D11Func_CreateVertexBuffer(D3D11** ppd3d, D3D11Pipeline* pipeline)
 {
+	if (pipeline->vertexBuffer)
+	{
+		return true;
+	}
+
 	constexpr VertexProperties vertices[] = {
 	{  DirectX::XMFLOAT3{ 0.0f, 0.5f, 0.0f }, DirectX::XMFLOAT3{ 0.25f, 0.39f, 0.19f }},
 	{  DirectX::XMFLOAT3{ 0.5f, -0.5f, 0.0f }, DirectX::XMFLOAT3{ 0.44f, 0.75f, 0.35f }},
@@ -299,7 +344,7 @@ bool D3D11Func_CreateVertexBuffer(D3D11** ppd3d)
 	HRESULT hr = (*ppd3d)->device->CreateBuffer(
 		&bufferInfo,
 		&resourceData,
-		&(*ppd3d)->testTriangleVertices);
+		&pipeline->vertexBuffer);
 
 	if (FAILED(hr))
 	{
@@ -334,9 +379,8 @@ ComPtr<ID3D11VertexShader> D3D11Func_CreateVertexShader(D3D11** ppd3d, const std
 	return vertexShader;
 }
 
-ComPtr<ID3D11PixelShader> D3D11Func_CreatePixelShader(D3D11** ppd3d, const std::wstring& fileName)
+ComPtr<ID3D11PixelShader> D3D11Func_CreatePixelShader(D3D11** ppd3d, const std::wstring& fileName, ComPtr<ID3DBlob>& pixelShaderBlob)
 {
-	ComPtr<ID3DBlob> pixelShaderBlob = nullptr;
 	if (!D3D11Func_CompileShader(fileName, "Main", "ps_5_0", pixelShaderBlob))
 	{
 		return nullptr;
@@ -651,14 +695,14 @@ HRESULT D3D11Func_GetDisplayMode( D3D11* d3d, DDSURFACEDESC2* pddsd )
 	return d3d->ddraw->GetDisplayMode( pddsd );
 }
 
-HRESULT D3D11Func_SetInputLayout(D3D11* d3d)
+HRESULT D3D11Func_SetInputLayout(D3D11* d3d, D3D11Pipeline* pipeline)
 {
-	d3d->context->IASetInputLayout(d3d->testInputLayout.Get());
+	d3d->context->IASetInputLayout(pipeline->inputLayout.Get());
 
 	return S_OK;
 }
 
-HRESULT D3D11Func_SetVertexBuffers(D3D11* d3d)
+HRESULT D3D11Func_SetVertexBuffers(D3D11* d3d, D3D11Pipeline* pipeline)
 {
 	constexpr UINT vertexStride = sizeof(VertexProperties);
 	constexpr UINT vertexOffset = 0;
@@ -666,7 +710,7 @@ HRESULT D3D11Func_SetVertexBuffers(D3D11* d3d)
 	d3d->context->IASetVertexBuffers(
 		0,
 		1,
-		d3d->testTriangleVertices.GetAddressOf(),
+		pipeline->vertexBuffer.GetAddressOf(),
 		&vertexStride,
 		&vertexOffset);
 
@@ -675,20 +719,20 @@ HRESULT D3D11Func_SetVertexBuffers(D3D11* d3d)
 	return S_OK;
 }
 
-HRESULT D3D11Func_SetVertexShader(D3D11* d3d)
+HRESULT D3D11Func_SetVertexShader(D3D11* d3d, D3D11Pipeline* pipeline)
 {
 	d3d->context->VSSetShader(
-		d3d->testVS.Get(),
+		pipeline->vertexShader.Get(),
 		nullptr,
 		0);
 
 	return S_OK;
 }
 
-HRESULT D3D11Func_SetPixelShader(D3D11* d3d)
+HRESULT D3D11Func_SetPixelShader(D3D11* d3d, D3D11Pipeline* pipeline)
 {
 	d3d->context->PSSetShader(
-		d3d->testPS.Get(),
+		pipeline->pixelShader.Get(),
 		nullptr,
 		0);
 
@@ -769,4 +813,31 @@ HRESULT D3D11SurfaceFunc_Blt( D3D11* d3d, D3D11Surface* surface,  LPRECT lpDestR
 	}
 
 	return E_FAIL;
+}
+
+HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* surface, LPRECT lpDestRect, LPRECT lpSrcRect, DWORD dwTrans )
+{
+	D3D11Func_ClearRT(d3d, 0x000000);
+
+	D3D11Func_InitPipelineShaders(&d3d, &d3d->defaultBlitPipeline);
+	D3D11Func_CreateVertexShaderInputLayout(&d3d, &d3d->defaultBlitPipeline);
+	D3D11Func_CreateVertexBuffer(&d3d, &d3d->defaultBlitPipeline);
+	D3D11Func_SetInputLayout(d3d, &d3d->defaultBlitPipeline);
+	D3D11Func_SetVertexBuffers(d3d, &d3d->defaultBlitPipeline);
+	D3D11Func_SetVertexShader(d3d, &d3d->defaultBlitPipeline);
+	D3D11Func_SetPixelShader(d3d, &d3d->defaultBlitPipeline);
+
+	D3DVIEWPORT7 vp;
+	vp.dwX = lpDestRect->left;
+	vp.dwY = lpDestRect->top;
+	vp.dwWidth = lpDestRect->right - lpDestRect->left;
+	vp.dwHeight = lpDestRect->bottom - lpDestRect->top;
+	vp.dvMinZ = 0;
+	vp.dvMaxZ = 1;
+
+	D3D11Func_SetViewport(d3d, &vp);
+	D3D11Func_Draw(d3d);
+
+
+	return S_OK;
 }
