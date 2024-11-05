@@ -517,6 +517,28 @@ HRESULT D3D11Func_CreateSurface( D3D11* d3d, D3D11Surface** ppsurface, DDSURFACE
 		else if( pddsd->ddsCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN )
 		{
 			(*ppsurface)->flags |= D3D11_SURF_FLAG_TEXTURE;
+
+			D3D11_TEXTURE2D_DESC desc2D;
+			desc2D.Format = DXGI_FORMAT_R16G16B16A16_FLOAT; // todo: convert 
+			desc2D.Width = pddsd->dwWidth;
+			desc2D.Height = pddsd->dwHeight;
+			desc2D.ArraySize = 1;
+			desc2D.MipLevels = 1;
+			desc2D.Usage = D3D11_USAGE_DYNAMIC;
+			desc2D.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+			desc2D.MiscFlags = 0;
+			desc2D.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+			desc2D.SampleDesc.Count = 1;
+			desc2D.SampleDesc.Quality = 0;
+
+			// create texture
+			HRESULT hr = d3d->device->CreateTexture2D(&desc2D, nullptr, &(*ppsurface)->texture);
+			if (FAILED(hr)) { DISPDBG_FP(0, "ERROR:  ID3D11Device::CreateTexture2D() returned: " << std::hex << hr); return hr; }
+
+			// query surface
+			hr = (*ppsurface)->texture->QueryInterface(&(*ppsurface)->surface);
+			if (FAILED(hr)) { DISPDBG_FP(0, "ERROR:  ID3D11Device::QueryInterface() returned: " << std::hex << hr); return hr; }
+
 		}
 		else if( pddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER )
 		{
@@ -524,7 +546,6 @@ HRESULT D3D11Func_CreateSurface( D3D11* d3d, D3D11Surface** ppsurface, DDSURFACE
 		}
 		else
 			return E_INVALIDARG;
-
 
 		/* We'll need this later */
 		memmove(&(*ppsurface)->ddsd, pddsd, sizeof(DDSURFACEDESC2));

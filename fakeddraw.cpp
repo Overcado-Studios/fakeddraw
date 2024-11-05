@@ -179,7 +179,35 @@ HRESULT WINAPI IDirectDrawFake::CreatePalette( DWORD dwFlags, LPPALETTEENTRY lpD
 
 HRESULT WINAPI IDirectDrawFake_CreatePalette( IDirectDrawFake* This, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray, IDirectDrawPaletteFake** lplpDDPalette, IUnknownFake* pUnkOuter )
 {
-	LOGUNIMPL_F;
+	GUARD(This, E_FAIL);
+
+	/* Sanity check */
+	if (!lplpDDPalette)
+		return E_INVALIDARG;
+
+	/* Allocate fake DirectDraw interface and initialize Vtable for C */
+	(*lplpDDPalette) = new IDirectDrawPaletteFake;
+	if (!(*lplpDDPalette))
+		return E_OUTOFMEMORY;
+
+	if (!DDrawPaletteVtableCreate(lplpDDPalette))
+		return E_OUTOFMEMORY;
+
+	(*lplpDDPalette)->reserved = new DDrawPalettePrivate;
+	if (!(*lplpDDPalette)->reserved)
+		return E_OUTOFMEMORY;
+
+	memset((*lplpDDPalette)->reserved, 0, sizeof(DDrawPalettePrivate));
+
+	//HRESULT hr = D3D11PaletteFunc_CreatePalette(ACCESS(DDrawPrivate)->pD3DContext, lpDDColorArray, lpDDPal);
+	//if (FAILED(hr))
+	//	return hr;
+
+	_ACCESS(DDrawPalettePrivate, (*lplpDDPalette))->dwFlags = dwFlags;
+	_ACCESS(DDrawPalettePrivate, (*lplpDDPalette))->peEntries = lpDDColorArray;
+	_ACCESS(DDrawPalettePrivate, (*lplpDDPalette))->RefCount = 1;
+
+	return DD_OK;
 }
 
 HRESULT WINAPI IDirectDrawFake::CreateSurface(LPDDSURFACEDESC2 lpDDSurfaceDesc2, IDirectDrawSurfaceFake** lplpDDSurface, IUnknownFake* pUnkOuter)
@@ -621,16 +649,16 @@ HRESULT WINAPI IDirectDrawSurfaceFake_Flip( IDirectDrawSurfaceFake* This, IDirec
 {
 	GUARD( This, E_FAIL );
 
-	D3D11Func_ClearRT(ACCESS(DDrawSurfacePrivate)->pParentD3DContext, 0xFFFF0000);
-	D3D11Func_SetInputLayout(ACCESS(DDrawSurfacePrivate)->pParentD3DContext);
-	D3D11Func_SetVertexBuffers(ACCESS(DDrawSurfacePrivate)->pParentD3DContext);
-	D3D11Func_SetVertexShader(ACCESS(DDrawSurfacePrivate)->pParentD3DContext);
-	D3D11Func_SetPixelShader(ACCESS(DDrawSurfacePrivate)->pParentD3DContext);
+	//D3D11Func_ClearRT(ACCESS(DDrawSurfacePrivate)->pParentD3DContext, 0xFFFF0000);
+	//D3D11Func_SetInputLayout(ACCESS(DDrawSurfacePrivate)->pParentD3DContext);
+	//D3D11Func_SetVertexBuffers(ACCESS(DDrawSurfacePrivate)->pParentD3DContext);
+	//D3D11Func_SetVertexShader(ACCESS(DDrawSurfacePrivate)->pParentD3DContext);
+	//D3D11Func_SetPixelShader(ACCESS(DDrawSurfacePrivate)->pParentD3DContext);
 
-	D3D11Func_SetViewport2(ACCESS(DDrawSurfacePrivate)->pParentD3DContext);
+	//D3D11Func_SetViewport2(ACCESS(DDrawSurfacePrivate)->pParentD3DContext);
 
 
-	D3D11Func_Draw(ACCESS(DDrawSurfacePrivate)->pParentD3DContext);
+	//D3D11Func_Draw(ACCESS(DDrawSurfacePrivate)->pParentD3DContext);
 
 	return D3D11Func_Present( ACCESS(DDrawSurfacePrivate)->pParentD3DContext );
 }
