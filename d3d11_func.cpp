@@ -2,6 +2,7 @@
 #include <dxgi1_6.h>
 #include <ddraw.h>
 #include <d3dcompiler.h>
+#include <vector>
 
 //#include <d3d.h>
 
@@ -31,6 +32,9 @@ struct D3D11Pipeline
 	ComPtr<ID3DBlob> pixelShaderBlob = nullptr;
 	ComPtr<ID3D11InputLayout> inputLayout = nullptr;
 	ComPtr<ID3D11Buffer> vertexBuffer = nullptr;
+
+	int	 vertexCount;
+	//std::vector<VertexProperties>
 };
 
 struct VertexProperties
@@ -50,7 +54,7 @@ bool	D3D11Func_CompileShader(const std::wstring& fileName,
 	const std::string& entryPoint,
 	const std::string& profile, ComPtr<ID3DBlob>& shaderBlob);
 bool	D3D11Func_CreateVertexShaderInputLayout(D3D11** ppd3d, D3D11Pipeline* pipeline);
-bool	D3D11Func_CreateVertexBuffer(D3D11** ppd3d, D3D11Pipeline* pipeline);
+bool	D3D11Func_CreateVertexBuffer(D3D11** ppd3d, D3D11Pipeline* pipeline, VertexProperties* vertices, int vertexCount);
 
 struct D3D11
 {
@@ -321,20 +325,20 @@ bool D3D11Func_CreateVertexShaderInputLayout(D3D11** ppd3d, D3D11Pipeline* pipel
 	return true;
 }
 
-bool D3D11Func_CreateVertexBuffer(D3D11** ppd3d, D3D11Pipeline* pipeline)
+bool D3D11Func_CreateVertexBuffer(D3D11** ppd3d, D3D11Pipeline* pipeline, VertexProperties* vertices, int vertexCount)
 {
 	if (pipeline->vertexBuffer)
 	{
 		return true;
 	}
 
-	constexpr VertexProperties vertices[] = {
-	{  DirectX::XMFLOAT3{ 0.0f, 0.5f, 0.0f }, DirectX::XMFLOAT3{ 0.25f, 0.39f, 0.19f }},
-	{  DirectX::XMFLOAT3{ 0.5f, -0.5f, 0.0f }, DirectX::XMFLOAT3{ 0.44f, 0.75f, 0.35f }},
-	{  DirectX::XMFLOAT3{ -0.5f, -0.5f, 0.0f }, DirectX::XMFLOAT3{ 0.38f, 0.55f, 0.20f }},
-	};
+	if (!vertices)
+	{
+		return false;
+	}
+
 	D3D11_BUFFER_DESC bufferInfo = {};
-	bufferInfo.ByteWidth = sizeof(vertices);
+	bufferInfo.ByteWidth = sizeof(*vertices) * vertexCount;
 	bufferInfo.Usage = D3D11_USAGE::D3D11_USAGE_IMMUTABLE;
 	bufferInfo.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
 
@@ -345,6 +349,8 @@ bool D3D11Func_CreateVertexBuffer(D3D11** ppd3d, D3D11Pipeline* pipeline)
 		&bufferInfo,
 		&resourceData,
 		&pipeline->vertexBuffer);
+
+	pipeline->vertexCount = vertexCount;
 
 	if (FAILED(hr))
 	{
@@ -739,9 +745,9 @@ HRESULT D3D11Func_SetPixelShader(D3D11* d3d, D3D11Pipeline* pipeline)
 	return S_OK;
 }
 
-HRESULT D3D11Func_Draw(D3D11* d3d)
+HRESULT D3D11Func_Draw(D3D11* d3d, D3D11Pipeline* pipeline)
 {
-	d3d->context->Draw(3, 0);
+	d3d->context->Draw(pipeline->vertexCount, 0);
 
 	return E_NOTIMPL;
 }
@@ -819,9 +825,26 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* surface, LPRECT lpDes
 {
 	D3D11Func_ClearRT(d3d, 0x000000);
 
+	VertexProperties vertices[] = {
+	{  DirectX::XMFLOAT3{ -1.f, 1.f, 0.0f }, DirectX::XMFLOAT3{ 0, 1, 0 }},
+	{  DirectX::XMFLOAT3{ 1.0f, -1.f, 0.0f }, DirectX::XMFLOAT3{ 0, 1, 1 }},
+	{  DirectX::XMFLOAT3{ -1.0f, -1.0f, 0.0f }, DirectX::XMFLOAT3{ 1, 0, 0 }},
+	{  DirectX::XMFLOAT3{ -1.f, 1.f, 0.0f }, DirectX::XMFLOAT3{ 0, 1, 0 }},
+	{  DirectX::XMFLOAT3{ 1.f, 1.f, 0.0f }, DirectX::XMFLOAT3{ 0, 1, 1 }},
+	{  DirectX::XMFLOAT3{ 1.0f, -1.f, 0.0f }, DirectX::XMFLOAT3{ 0, 1, 1 }},
+	};
+
+	//VertexProperties vertices[] = {
+	//{  DirectX::XMFLOAT3{ -1.f, -1.f, 0.0f }, DirectX::XMFLOAT3{ 1, 0, 0 }},
+	//{  DirectX::XMFLOAT3{ 1.f, -1.f, 0.0f }, DirectX::XMFLOAT3{ 0, 1, 1 }},
+	//{  DirectX::XMFLOAT3{ -1.f, -1.f, 0.0f }, DirectX::XMFLOAT3{ 0, 1, 0 }},
+	//{  DirectX::XMFLOAT3{ -0.5f, -0.5f, 0.0f }, DirectX::XMFLOAT3{ 0, 0, 1 }},
+	//};
+
+
 	D3D11Func_InitPipelineShaders(&d3d, &d3d->defaultBlitPipeline);
 	D3D11Func_CreateVertexShaderInputLayout(&d3d, &d3d->defaultBlitPipeline);
-	D3D11Func_CreateVertexBuffer(&d3d, &d3d->defaultBlitPipeline);
+	D3D11Func_CreateVertexBuffer(&d3d, &d3d->defaultBlitPipeline, vertices, ARRAYSIZE(vertices));
 	D3D11Func_SetInputLayout(d3d, &d3d->defaultBlitPipeline);
 	D3D11Func_SetVertexBuffers(d3d, &d3d->defaultBlitPipeline);
 	D3D11Func_SetVertexShader(d3d, &d3d->defaultBlitPipeline);
@@ -836,7 +859,7 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* surface, LPRECT lpDes
 	vp.dvMaxZ = 1;
 
 	D3D11Func_SetViewport(d3d, &vp);
-	D3D11Func_Draw(d3d);
+	D3D11Func_Draw(d3d, &d3d->defaultBlitPipeline);
 
 
 	return S_OK;
