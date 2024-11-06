@@ -23,6 +23,12 @@ typedef struct _D3DVIEWPORT7 {
 #define D3D11_SURF_FLAG_TEXTURE			0x4
 #define D3D11_SURF_FLAG_ZBUFFER			0x8
 
+// some important enumerations
+enum
+{
+	SAMPLER_STATE_COUNT = 16,
+	RESOURCE_STATE_COUNT = 128
+};
 
 enum PipelineStage
 {
@@ -45,8 +51,8 @@ struct D3D11Pipeline
 	int	 vertexCount;
 	//std::vector<VertexProperties>
 
-	ComPtr<ID3D11SamplerState>				samplerStates[PIPELINE_STAGE_COUNT][16]; // 16 sampler states on d3d11
-	ComPtr<ID3D11ShaderResourceView>		resourceStates[PIPELINE_STAGE_COUNT][128];
+	ComPtr<ID3D11SamplerState>				samplerStates[PIPELINE_STAGE_COUNT][SAMPLER_STATE_COUNT];
+	ComPtr<ID3D11ShaderResourceView>		resourceStates[PIPELINE_STAGE_COUNT][RESOURCE_STATE_COUNT];		// make this abit better to handle non-texture resources?
 	int samplerCount;
 };
 
@@ -65,6 +71,8 @@ HRESULT D3D11func_CreateDefaultSamplers(D3D11* d3d);
 
 bool	D3D11Func_ShaderManager_Init(D3D11** ppd3d);
 bool	D3D11Func_ShaderManager_Shutdown(D3D11** ppd3d);
+
+bool D3D11Func_ShutdownPipelineResources(D3D11** ppd3d, D3D11Pipeline* pipeline);
 
 bool	D3D11Func_CompileShader(const std::wstring& fileName,
 	const std::string& entryPoint,
@@ -174,6 +182,8 @@ HRESULT D3D11Func_CreateDevice( D3D11** ppd3d, HWND hwnd )
 
 void D3D11Func_ReleaseDevice( D3D11** ppd3d )
 {
+	D3D11Func_ShutdownPipelineResources(ppd3d, &(*ppd3d)->defaultBlitPipeline);
+
 	if( (*ppd3d)->swapchain )
 	{
 		(*ppd3d)->swapchain->SetFullscreenState( FALSE, NULL );		/* MUST be in windowed mode or else releasing the swapchain will crash */
@@ -248,6 +258,29 @@ bool D3D11Func_ShutdownPipelineResources(D3D11** ppd3d, D3D11Pipeline* pipeline)
 	if (pipeline->vertexBuffer)
 	{
 		pipeline->vertexBuffer->Release();
+	}
+
+	for (int i = 0; i < PIPELINE_STAGE_COUNT; i++)
+	{
+		for (int j = 0; j < SAMPLER_STATE_COUNT; j++)
+		{
+			ComPtr<ID3D11SamplerState> obj = pipeline->samplerStates[i][j];
+
+			if (obj)
+			{
+				obj->Release();
+			}
+		}
+
+		for (int j = 0; j < RESOURCE_STATE_COUNT; j++)
+		{
+			ComPtr<ID3D11ShaderResourceView> obj = pipeline->resourceStates[i][j];
+
+			if (obj)
+			{
+				obj->Release();
+			}
+		}
 	}
 
 	return true;
@@ -435,6 +468,43 @@ ComPtr<ID3D11PixelShader> D3D11Func_CreatePixelShader(D3D11** ppd3d, const std::
 
 	return pixelShader;
 }
+
+HRESULT D3D11Func_BindResources(D3D11* d3d, ComPtr<ID3D11ShaderResourceView>* resourceStates, PipelineStage pipelineStage, int count)
+{
+	switch (pipelineStage)
+	{
+	case PIPELINE_STAGE_VERTEX:
+		d3d->context->VSSetShaderResources(0, count, resourceStates->GetAddressOf());
+		break;
+	case PIPELINE_STAGE_PIXEL:
+		d3d->context->PSSetShaderResources(0, count, resourceStates->GetAddressOf());
+		break;
+	case PIPELINE_STAGE_COMPUTE:
+		d3d->context->CSSetShaderResources(0, count, resourceStates->GetAddressOf());
+		break;
+	}
+
+	return S_OK;
+}
+
+HRESULT D3D11Func_BindSamplers(D3D11* d3d, ComPtr<ID3D11SamplerState>* samplerStates, PipelineStage pipelineStage, int count)
+{
+	switch (pipelineStage)
+	{
+	case PIPELINE_STAGE_VERTEX:
+		d3d->context->VSSetSamplers(0, count, samplerStates->GetAddressOf());
+		break;
+	case PIPELINE_STAGE_PIXEL:
+		d3d->context->PSSetSamplers(0, count, samplerStates->GetAddressOf());
+		break;
+	case PIPELINE_STAGE_COMPUTE:
+		d3d->context->CSSetSamplers(0, count, samplerStates->GetAddressOf());
+		break;
+	}
+
+	return S_OK;
+}
+
 
 HRESULT D3D11Func_SetDisplayMode( D3D11* d3d, int width, int height, int bpp, int refresh_rate, int fullscreen )
 {
@@ -692,6 +762,9 @@ HRESULT D3D11Func_DeleteSurface( D3D11Surface** ppsurface )
 	if( (*ppsurface)->rtv )
 		(*ppsurface)->rtv->Release();
 
+	if ((*ppsurface)->srv)
+		(*ppsurface)->srv->Release();
+
 	if( (*ppsurface)->surface )
 		(*ppsurface)->surface->Release();
 
@@ -900,41 +973,7 @@ HRESULT D3D11SurfaceFunc_Blt( D3D11* d3d, D3D11Surface* surface,  LPRECT lpDestR
 	return E_FAIL;
 }
 
-HRESULT D3D11SurfaceFunc_BindResources(D3D11* d3d, ComPtr<ID3D11ShaderResourceView>* resourceStates, PipelineStage pipelineStage, int count)
-{
-	switch (pipelineStage)
-	{
-	case PIPELINE_STAGE_VERTEX:
-		d3d->context->VSSetShaderResources(0, count, resourceStates->GetAddressOf());
-		break;
-	case PIPELINE_STAGE_PIXEL:
-		d3d->context->PSSetShaderResources(0, count, resourceStates->GetAddressOf());
-		break;
-	case PIPELINE_STAGE_COMPUTE:
-		d3d->context->CSSetShaderResources(0, count, resourceStates->GetAddressOf());
-		break;
-	}
 
-	return S_OK;
-}
-
-HRESULT D3D11SurfaceFunc_BindSamplers(D3D11* d3d, ComPtr<ID3D11SamplerState>* samplerStates, PipelineStage pipelineStage, int count)
-{
-	switch (pipelineStage)
-	{
-	case PIPELINE_STAGE_VERTEX:
-		d3d->context->VSSetSamplers(0, count, samplerStates->GetAddressOf());
-		break;
-	case PIPELINE_STAGE_PIXEL:
-		d3d->context->PSSetSamplers(0, count, samplerStates->GetAddressOf());
-		break;
-	case PIPELINE_STAGE_COMPUTE:
-		d3d->context->CSSetSamplers(0, count, samplerStates->GetAddressOf());
-		break;
-	}
-
-	return S_OK;
-}
 
 HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* surface, LPRECT lpDestRect, LPRECT lpSrcRect, DWORD dwTrans )
 {
@@ -961,8 +1000,8 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* surface, LPRECT lpDes
 	d3d->defaultBlitPipeline.samplerStates[PIPELINE_STAGE_PIXEL][0] = d3d->linearSamplerState;
 	d3d->defaultBlitPipeline.resourceStates[PIPELINE_STAGE_PIXEL][0] = surface->srv;
 
-	D3D11SurfaceFunc_BindSamplers(d3d, d3d->defaultBlitPipeline.samplerStates[PIPELINE_STAGE_PIXEL], PIPELINE_STAGE_PIXEL, 1);
-	D3D11SurfaceFunc_BindResources(d3d, d3d->defaultBlitPipeline.resourceStates[PIPELINE_STAGE_PIXEL], PIPELINE_STAGE_PIXEL, 1);
+	D3D11Func_BindSamplers(d3d, d3d->defaultBlitPipeline.samplerStates[PIPELINE_STAGE_PIXEL], PIPELINE_STAGE_PIXEL, 1);
+	D3D11Func_BindResources(d3d, d3d->defaultBlitPipeline.resourceStates[PIPELINE_STAGE_PIXEL], PIPELINE_STAGE_PIXEL, 1);
 
 	D3DVIEWPORT7 vp;
 	vp.dwX = lpDestRect->left;
