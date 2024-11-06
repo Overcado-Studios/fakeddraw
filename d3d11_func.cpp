@@ -41,6 +41,7 @@ struct VertexProperties
 {
 	DirectX::XMFLOAT3 position;
 	DirectX::XMFLOAT3 color;
+	DirectX::XMFLOAT2 uv;
 };
 
 ComPtr<ID3D11VertexShader> D3D11Func_CreateVertexShader(D3D11** ppd3d, const std::wstring& fileName, ComPtr<ID3DBlob>& vertexShaderBlob);
@@ -304,6 +305,15 @@ bool D3D11Func_CreateVertexShaderInputLayout(D3D11** ppd3d, D3D11Pipeline* pipel
 			DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT,
 			0,
 			offsetof(VertexProperties,    color),
+			D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA,
+			0
+		},
+		{
+			"TEXCOORD",
+			0,
+			DXGI_FORMAT::DXGI_FORMAT_R32G32_FLOAT,
+			0,
+			offsetof(VertexProperties,    uv),
 			D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA,
 			0
 		},
@@ -815,7 +825,7 @@ HRESULT D3D11SurfaceFunc_Blt( D3D11* d3d, D3D11Surface* surface,  LPRECT lpDestR
 	/* Do a normal blit */
 	else if( surface->ddsd.ddsCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN )
 	{
-		
+		D3D11SurfaceFunc_BltFast(d3d, surface, lpDestRect, lpSrcRect, DDBLTFAST_NOCOLORKEY);
 	}
 
 	return E_FAIL;
@@ -825,13 +835,14 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* surface, LPRECT lpDes
 {
 	D3D11Func_ClearRT(d3d, 0x000000);
 
+	// default vertex coords for a fullscreen quad
 	VertexProperties vertices[] = {
-	{  DirectX::XMFLOAT3{ -1.f, 1.f, 0.0f }, DirectX::XMFLOAT3{ 0, 1, 0 }},
-	{  DirectX::XMFLOAT3{ 1.0f, -1.f, 0.0f }, DirectX::XMFLOAT3{ 0, 1, 1 }},
-	{  DirectX::XMFLOAT3{ -1.0f, -1.0f, 0.0f }, DirectX::XMFLOAT3{ 1, 0, 0 }},
-	{  DirectX::XMFLOAT3{ -1.f, 1.f, 0.0f }, DirectX::XMFLOAT3{ 0, 1, 0 }},
-	{  DirectX::XMFLOAT3{ 1.f, 1.f, 0.0f }, DirectX::XMFLOAT3{ 0, 1, 1 }},
-	{  DirectX::XMFLOAT3{ 1.0f, -1.f, 0.0f }, DirectX::XMFLOAT3{ 0, 1, 1 }},
+	{  DirectX::XMFLOAT3{ -1.f, 1.f, 0.0f }, DirectX::XMFLOAT3{ 0, 1, 0 }, DirectX::XMFLOAT2{ 0, 0 }},
+	{  DirectX::XMFLOAT3{ 1.0f, -1.f, 0.0f }, DirectX::XMFLOAT3{ 0, 1, 1 }, DirectX::XMFLOAT2{ 1, 1 }},
+	{  DirectX::XMFLOAT3{ -1.0f, -1.0f, 0.0f }, DirectX::XMFLOAT3{ 1, 0, 0 }, DirectX::XMFLOAT2{ 0, 1 }},
+	{  DirectX::XMFLOAT3{ -1.f, 1.f, 0.0f }, DirectX::XMFLOAT3{ 0, 1, 0 }, DirectX::XMFLOAT2{ 0, 0 }},
+	{  DirectX::XMFLOAT3{ 1.f, 1.f, 0.0f }, DirectX::XMFLOAT3{ 0, 1, 1 }, DirectX::XMFLOAT2{ 1, 0 }},
+	{  DirectX::XMFLOAT3{ 1.0f, -1.f, 0.0f }, DirectX::XMFLOAT3{ 0, 1, 1 }, DirectX::XMFLOAT2{ 1, 1 }},
 	};
 
 	//VertexProperties vertices[] = {
