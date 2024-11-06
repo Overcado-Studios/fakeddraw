@@ -65,8 +65,6 @@ struct D3D11Surface
 
 struct D3D11Pipeline
 {
-	char szVertexShaderName[32];
-	char szPixelShaderName[32];
 	ComPtr<ID3D11VertexShader> vertexShader = nullptr;
 	ComPtr<ID3D11PixelShader> pixelShader = nullptr;
 	ComPtr<ID3DBlob> vertexShaderBlob = nullptr;
@@ -104,10 +102,15 @@ struct ShaderConstants
 	DirectX::XMFLOAT4 testColor;
 };
 
+struct ShaderConstants2
+{
+	DirectX::XMFLOAT4 testColor2;
+};
+
 // Private Member Functions
 ComPtr<ID3D11VertexShader> D3D11Func_CreateVertexShader(D3D11** ppd3d, const std::wstring& fileName, ComPtr<ID3DBlob>& vertexShaderBlob);
 ComPtr<ID3D11PixelShader> D3D11Func_CreatePixelShader(D3D11** ppd3d, const std::wstring& fileName, ComPtr<ID3DBlob>& pixelShaderBlob);
-bool D3D11Func_InitPipelineShaders(D3D11** ppd3d, D3D11Pipeline* pipeline);
+HRESULT D3D11Func_InitPipelineShaders(D3D11** ppd3d, D3D11Pipeline* pipeline, const std::wstring vertexShaderName, const std::wstring pixelShaderName);
 HRESULT D3D11func_CreateDefaultSamplers(D3D11* d3d);
 bool	D3D11Func_ShaderManager_Init(D3D11** ppd3d);
 bool	D3D11Func_ShaderManager_Shutdown(D3D11** ppd3d);
@@ -214,26 +217,27 @@ bool D3D11Func_InitializeShaderSystem(D3D11** ppd3d)
 	return false;
 }
 
-bool D3D11Func_InitPipelineShaders(D3D11** ppd3d, D3D11Pipeline* pipeline)
+HRESULT D3D11Func_InitPipelineShaders(D3D11** ppd3d, D3D11Pipeline* pipeline, const std::wstring vertexShaderName, const std::wstring pixelShaderName)
 {
-	// TODO: add variability
 	if (!pipeline->vertexShader)
 	{
-		pipeline->vertexShader = D3D11Func_CreateVertexShader(ppd3d, L"C:\\Projects\\Overcado\\laghaim-front-end\\fakeddraw\\shaders\\Main.vs.hlsl", pipeline->vertexShaderBlob);
+		pipeline->vertexShader = D3D11Func_CreateVertexShader(ppd3d, vertexShaderName, pipeline->vertexShaderBlob);
 		if (pipeline->vertexShader == nullptr)
 		{
-			return false;
+			return E_FAIL;
 		}
 	}
 	
 	if (!pipeline->pixelShader)
 	{
-		pipeline->pixelShader = D3D11Func_CreatePixelShader(ppd3d, L"C:\\Projects\\Overcado\\laghaim-front-end\\fakeddraw\\shaders\\Main.ps.hlsl", pipeline->pixelShaderBlob);
+		pipeline->pixelShader = D3D11Func_CreatePixelShader(ppd3d, pixelShaderName, pipeline->pixelShaderBlob);
 		if (pipeline->pixelShader == nullptr)
 		{
-			return false;
+			return E_FAIL;
 		}
 	}
+
+	return S_OK;
 }
 
 bool D3D11Func_ShutdownPipelineResources(D3D11** ppd3d, D3D11Pipeline* pipeline)
@@ -1077,7 +1081,10 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* surface, LPRECT lpDes
 	{  DirectX::XMFLOAT3{ 1.0f, -1.f, 0.0f }, DirectX::XMFLOAT3{ 0, 1, 1 }, DirectX::XMFLOAT2{ 1, 1 }},
 	};
 
-	D3D11Func_InitPipelineShaders(&d3d, &d3d->defaultBlitPipeline);
+	D3D11Func_InitPipelineShaders(&d3d, &d3d->defaultBlitPipeline, 
+		L"shaders/Main.vs.hlsl",
+		L"shaders/Main.ps.hlsl");
+
 	D3D11Func_CreateVertexShaderInputLayout(&d3d, &d3d->defaultBlitPipeline);
 	D3D11Func_CreateVertexBuffer(&d3d, &d3d->defaultBlitPipeline, vertices, ARRAYSIZE(vertices));
 	D3D11Func_SetInputLayout(d3d, &d3d->defaultBlitPipeline);
@@ -1090,7 +1097,14 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* surface, LPRECT lpDes
 
 	D3D11Func_CreateConstantBuffer(&d3d, d3d->defaultBlitPipeline.constantBuffers[PIPELINE_STAGE_PIXEL][0], nullptr, sizeof(ShaderConstants));
 	D3D11Func_UpdateConstantBuffer(&d3d, d3d->defaultBlitPipeline.constantBuffers[PIPELINE_STAGE_PIXEL][0], &constants, sizeof(ShaderConstants));
-	D3D11Func_BindConstantBuffers(d3d, d3d->defaultBlitPipeline.constantBuffers[PIPELINE_STAGE_PIXEL], PIPELINE_STAGE_PIXEL, 1);
+
+	ShaderConstants constants2;
+	constants2.testColor = DirectX::XMFLOAT4(1, 0, 0, 1);
+	
+	D3D11Func_CreateConstantBuffer(&d3d, d3d->defaultBlitPipeline.constantBuffers[PIPELINE_STAGE_PIXEL][1], nullptr, sizeof(ShaderConstants2));
+	D3D11Func_UpdateConstantBuffer(&d3d, d3d->defaultBlitPipeline.constantBuffers[PIPELINE_STAGE_PIXEL][1], &constants2, sizeof(ShaderConstants2));
+
+	D3D11Func_BindConstantBuffers(d3d, d3d->defaultBlitPipeline.constantBuffers[PIPELINE_STAGE_PIXEL], PIPELINE_STAGE_PIXEL, 2);
 
 	d3d->defaultBlitPipeline.samplerStates[PIPELINE_STAGE_PIXEL][0] = d3d->linearSamplerState;
 	d3d->defaultBlitPipeline.resourceStates[PIPELINE_STAGE_PIXEL][0] = surface->srv;
