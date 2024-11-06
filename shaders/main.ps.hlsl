@@ -15,9 +15,14 @@ struct PSOutput
     float4 color : SV_Target0;
 };
 
+cbuffer ShaderConstants : register(b0)
+{
+    float4 g_TintTest;
+};
+
 PSOutput Main(PSInput input)
 {
     PSOutput output = (PSOutput) 0;
-    output.color = Tex.Sample(TexSampler, input.uv);
+    output.color = Tex.Sample(TexSampler, input.uv) * g_TintTest;
     return output;
 }
