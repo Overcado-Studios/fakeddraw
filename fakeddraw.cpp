@@ -21,6 +21,8 @@
 #define _ACCESS( type, ptr ) ((type*) (ptr)->reserved)
 #define ACCESS( type ) ((type*) (This)->reserved)
 
+#define ACCESS_2( type, mem ) ((type*) (mem)->reserved)
+
 #define LOGUNIMPL_F		{ static bool once=true; if(once){ DISPDBG_FP(0, "Not implemented!"); NVASSERT(0,__func__<<": Not implemented"); once=false; } return E_FAIL; }
 #define LOGUNIMPL(r)	{ static bool once=true; if(once){ DISPDBG_FP(0, "Not implemented!"); NVASSERT(0,__func__<<": Not implemented"); once=false; } return r; }
 
@@ -597,13 +599,17 @@ HRESULT WINAPI IDirectDrawSurfaceFake::BltFast( DWORD dwX,DWORD dwY, IDirectDraw
 
 HRESULT WINAPI IDirectDrawSurfaceFake_BltFast( IDirectDrawSurfaceFake* This, DWORD dwX,DWORD dwY, IDirectDrawSurfaceFake* lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans )
 {
+	D3D11* d3d = ACCESS(DDrawSurfacePrivate)->pParentD3DContext;
+	D3D11Func_SetRenderTarget(d3d, &ACCESS(DDrawSurfacePrivate)->pSurface);
+
 	RECT dstRect;
 	dstRect.left = dwX;
 	dstRect.top = dwY;
 	dstRect.right = dwX + lpSrcRect->right - lpSrcRect->left;
 	dstRect.bottom = dwY + lpSrcRect->bottom - lpSrcRect->top;
-	
-	return D3D11SurfaceFunc_BltFast(ACCESS(DDrawSurfacePrivate)->pParentD3DContext, ACCESS(DDrawSurfacePrivate)->pSurface, &dstRect, lpSrcRect, dwTrans);
+
+	D3D11Surface* srcSurface = ACCESS_2(DDrawSurfacePrivate, lpDDSrcSurface)->pSurface;
+	return D3D11SurfaceFunc_BltFast(d3d, srcSurface, &dstRect, lpSrcRect, dwTrans);
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::ChangeUniquenessValue()

@@ -23,6 +23,15 @@ typedef struct _D3DVIEWPORT7 {
 #define D3D11_SURF_FLAG_TEXTURE			0x4
 #define D3D11_SURF_FLAG_ZBUFFER			0x8
 
+
+enum PipelineStage
+{
+	PIPELINE_STAGE_VERTEX,
+	PIPELINE_STAGE_PIXEL,
+	PIPELINE_STAGE_COMPUTE,
+	PIPELINE_STAGE_COUNT
+};
+
 // Private Members
 struct D3D11Pipeline
 {
@@ -35,6 +44,10 @@ struct D3D11Pipeline
 
 	int	 vertexCount;
 	//std::vector<VertexProperties>
+
+	ComPtr<ID3D11SamplerState>				samplerStates[PIPELINE_STAGE_COUNT][16]; // 16 sampler states on d3d11
+	ComPtr<ID3D11ShaderResourceView>		resourceStates[PIPELINE_STAGE_COUNT][128];
+	int samplerCount;
 };
 
 struct VertexProperties
@@ -44,9 +57,11 @@ struct VertexProperties
 	DirectX::XMFLOAT2 uv;
 };
 
+
 ComPtr<ID3D11VertexShader> D3D11Func_CreateVertexShader(D3D11** ppd3d, const std::wstring& fileName, ComPtr<ID3DBlob>& vertexShaderBlob);
 ComPtr<ID3D11PixelShader> D3D11Func_CreatePixelShader(D3D11** ppd3d, const std::wstring& fileName, ComPtr<ID3DBlob>& pixelShaderBlob);
 bool D3D11Func_InitPipelineShaders(D3D11** ppd3d, D3D11Pipeline* pipeline);
+HRESULT D3D11func_CreateDefaultSamplers(D3D11* d3d);
 
 bool	D3D11Func_ShaderManager_Init(D3D11** ppd3d);
 bool	D3D11Func_ShaderManager_Shutdown(D3D11** ppd3d);
@@ -68,26 +83,21 @@ struct D3D11
 	HWND			hwnd;
 	D3D11_VIEWPORT	vp;
 
-	// default (we can refactor pipeline to use this shader later, but for now this stays)
-	//ComPtr<ID3D11VertexShader> testVS = nullptr;
-	//ComPtr<ID3D11PixelShader> testPS = nullptr;
-	//ComPtr<ID3DBlob> testVSBlob = nullptr;
-	//ComPtr<ID3D11InputLayout> testInputLayout = nullptr;
-	//ComPtr<ID3D11Buffer> testTriangleVertices = nullptr;
-
 	D3D11Pipeline	defaultBlitPipeline;
+
+	// Default Samplers
+	ComPtr<ID3D11SamplerState> linearSamplerState;
 };
-
-
 
 struct D3D11Surface
 {
-	ID3D11Texture2D*		texture;
-	IDXGISurface1*			surface;
-	ID3D11RenderTargetView*	rtv;
-	D3D11*					parent_context;
-	DWORD					flags;
-	DDSURFACEDESC2			ddsd;
+	ID3D11Texture2D*			texture;
+	IDXGISurface1*				surface;
+	ID3D11RenderTargetView*		rtv;
+	ID3D11ShaderResourceView*	srv;
+	D3D11*						parent_context;
+	DWORD						flags;
+	DDSURFACEDESC2				ddsd;
 };
 
 HRESULT D3D11Func_Initialize( D3D11** ppd3d )
@@ -245,6 +255,13 @@ bool D3D11Func_ShutdownPipelineResources(D3D11** ppd3d, D3D11Pipeline* pipeline)
 
 bool D3D11Func_ShaderManager_Init( D3D11** ppd3d )
 {
+	HRESULT hr = D3D11func_CreateDefaultSamplers(*ppd3d);
+
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
 	return true;
 }
 
@@ -579,15 +596,15 @@ HRESULT D3D11Func_CreateSurface( D3D11* d3d, D3D11Surface** ppsurface, DDSURFACE
 			(*ppsurface)->flags |= D3D11_SURF_FLAG_TEXTURE;
 
 			D3D11_TEXTURE2D_DESC desc2D;
-			desc2D.Format = DXGI_FORMAT_R16G16B16A16_FLOAT; // todo: convert 
+			desc2D.Format = DXGI_FORMAT_B8G8R8A8_UNORM; // todo: convert 
 			desc2D.Width = pddsd->dwWidth;
 			desc2D.Height = pddsd->dwHeight;
 			desc2D.ArraySize = 1;
 			desc2D.MipLevels = 1;
-			desc2D.Usage = D3D11_USAGE_DYNAMIC;
+			desc2D.Usage = D3D11_USAGE_DEFAULT;
 			desc2D.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-			desc2D.MiscFlags = 0;
-			desc2D.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+			desc2D.MiscFlags = D3D11_RESOURCE_MISC_GDI_COMPATIBLE;
+			desc2D.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
 			desc2D.SampleDesc.Count = 1;
 			desc2D.SampleDesc.Quality = 0;
 
@@ -598,6 +615,38 @@ HRESULT D3D11Func_CreateSurface( D3D11* d3d, D3D11Surface** ppsurface, DDSURFACE
 			// query surface
 			hr = (*ppsurface)->texture->QueryInterface(&(*ppsurface)->surface);
 			if (FAILED(hr)) { DISPDBG_FP(0, "ERROR:  ID3D11Device::QueryInterface() returned: " << std::hex << hr); return hr; }
+
+			D3D11_TEXTURE2D_DESC desc2d;
+			(*ppsurface)->texture->GetDesc(&desc2d);
+
+			// create rtv
+			//D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
+			//rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+			//rtvDesc.Texture2DArray.MipSlice = 0;
+			//rtvDesc.Texture2DArray.ArraySize = 1;
+			//rtvDesc.Texture2DArray.FirstArraySlice = 0;
+			//rtvDesc.Format = desc2d.Format;
+
+			///hr = d3d->device->CreateRenderTargetView((*ppsurface)->texture, &rtvDesc, &(*ppsurface)->rtv);
+			//if (FAILED(hr)) { DISPDBG_FP(0, "ERROR: ID3D11Device::CreateRenderTargetView() returned" << std::hex << hr); return hr; }
+
+			// create srv
+			D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
+			srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+			srvDesc.Texture2D.MostDetailedMip = 0;
+			srvDesc.Texture2D.MipLevels = desc2d.MipLevels;
+			srvDesc.Format = desc2D.Format;
+			
+			hr = d3d->device->CreateShaderResourceView((*ppsurface)->texture, &srvDesc, &(*ppsurface)->srv);
+			if (FAILED(hr)) { DISPDBG_FP(0, "ERROR: ID3D11Device::CreateShaderResourceView() returned" << std::hex << hr); return hr; }
+
+
+			// TESTS
+			//HDC pDC;
+			//hr = (*ppsurface)->surface->GetDC(FALSE, &pDC);
+			//if (FAILED(hr)) { DISPDBG_FP(0, "ERROR: ID3D11Device::GetDC for texture failed() returned" << std::hex << hr); return hr; }
+			//(*ppsurface)->surface->ReleaseDC(NULL);
+
 
 		}
 		else if( pddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER )
@@ -614,6 +663,25 @@ HRESULT D3D11Func_CreateSurface( D3D11* d3d, D3D11Surface** ppsurface, DDSURFACE
 	}
 
 	return E_INVALIDARG;
+}
+
+HRESULT D3D11func_CreateDefaultSamplers(D3D11* d3d)
+{
+	D3D11_SAMPLER_DESC desc;
+	desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	desc.MipLODBias = 0.0f;
+	desc.MaxAnisotropy = 16;
+	desc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+	desc.BorderColor[0] = desc.BorderColor[1] = desc.BorderColor[2] = desc.BorderColor[3] = 0.0f;
+	desc.MinLOD = 0.0f;
+	desc.MaxLOD = D3D11_FLOAT32_MAX;
+	HRESULT hr = d3d->device->CreateSamplerState(&desc, &d3d->linearSamplerState);
+	if (FAILED(hr)) { DISPDBG_FP(0, "ERROR:  ID3D11Device::CreateSamplerState() returned: " << std::hex << hr); return hr; }
+
+	D3D_SET_OBJECT_NAME_A(d3d->linearSamplerState, "generic_linear_sampler");
 }
 
 HRESULT D3D11Func_DeleteSurface( D3D11Surface** ppsurface )
@@ -755,11 +823,12 @@ HRESULT D3D11Func_SetPixelShader(D3D11* d3d, D3D11Pipeline* pipeline)
 	return S_OK;
 }
 
+
 HRESULT D3D11Func_Draw(D3D11* d3d, D3D11Pipeline* pipeline)
 {
 	d3d->context->Draw(pipeline->vertexCount, 0);
-
-	return E_NOTIMPL;
+	//d3d->context->ClearState();
+	return S_OK;
 }
 
 
@@ -775,7 +844,7 @@ HRESULT D3D11Func_SetRenderTarget(D3D11* d3d, D3D11Surface** ppsurface)
 \***********************************************************/
 HRESULT D3D11SurfaceFunc_GetDC( D3D11Surface* surface, HDC* pDC )
 {
-	return (surface)->surface->GetDC( FALSE, pDC );
+	return surface->surface->GetDC(FALSE, pDC);
 }
 
 HRESULT D3D11SurfaceFunc_ReleaseDC( D3D11Surface* surface, HDC* pDC ) 
@@ -831,6 +900,42 @@ HRESULT D3D11SurfaceFunc_Blt( D3D11* d3d, D3D11Surface* surface,  LPRECT lpDestR
 	return E_FAIL;
 }
 
+HRESULT D3D11SurfaceFunc_BindResources(D3D11* d3d, ComPtr<ID3D11ShaderResourceView>* resourceStates, PipelineStage pipelineStage, int count)
+{
+	switch (pipelineStage)
+	{
+	case PIPELINE_STAGE_VERTEX:
+		d3d->context->VSSetShaderResources(0, count, resourceStates->GetAddressOf());
+		break;
+	case PIPELINE_STAGE_PIXEL:
+		d3d->context->PSSetShaderResources(0, count, resourceStates->GetAddressOf());
+		break;
+	case PIPELINE_STAGE_COMPUTE:
+		d3d->context->CSSetShaderResources(0, count, resourceStates->GetAddressOf());
+		break;
+	}
+
+	return S_OK;
+}
+
+HRESULT D3D11SurfaceFunc_BindSamplers(D3D11* d3d, ComPtr<ID3D11SamplerState>* samplerStates, PipelineStage pipelineStage, int count)
+{
+	switch (pipelineStage)
+	{
+	case PIPELINE_STAGE_VERTEX:
+		d3d->context->VSSetSamplers(0, count, samplerStates->GetAddressOf());
+		break;
+	case PIPELINE_STAGE_PIXEL:
+		d3d->context->PSSetSamplers(0, count, samplerStates->GetAddressOf());
+		break;
+	case PIPELINE_STAGE_COMPUTE:
+		d3d->context->CSSetSamplers(0, count, samplerStates->GetAddressOf());
+		break;
+	}
+
+	return S_OK;
+}
+
 HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* surface, LPRECT lpDestRect, LPRECT lpSrcRect, DWORD dwTrans )
 {
 	D3D11Func_ClearRT(d3d, 0x000000);
@@ -845,14 +950,6 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* surface, LPRECT lpDes
 	{  DirectX::XMFLOAT3{ 1.0f, -1.f, 0.0f }, DirectX::XMFLOAT3{ 0, 1, 1 }, DirectX::XMFLOAT2{ 1, 1 }},
 	};
 
-	//VertexProperties vertices[] = {
-	//{  DirectX::XMFLOAT3{ -1.f, -1.f, 0.0f }, DirectX::XMFLOAT3{ 1, 0, 0 }},
-	//{  DirectX::XMFLOAT3{ 1.f, -1.f, 0.0f }, DirectX::XMFLOAT3{ 0, 1, 1 }},
-	//{  DirectX::XMFLOAT3{ -1.f, -1.f, 0.0f }, DirectX::XMFLOAT3{ 0, 1, 0 }},
-	//{  DirectX::XMFLOAT3{ -0.5f, -0.5f, 0.0f }, DirectX::XMFLOAT3{ 0, 0, 1 }},
-	//};
-
-
 	D3D11Func_InitPipelineShaders(&d3d, &d3d->defaultBlitPipeline);
 	D3D11Func_CreateVertexShaderInputLayout(&d3d, &d3d->defaultBlitPipeline);
 	D3D11Func_CreateVertexBuffer(&d3d, &d3d->defaultBlitPipeline, vertices, ARRAYSIZE(vertices));
@@ -860,6 +957,12 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* surface, LPRECT lpDes
 	D3D11Func_SetVertexBuffers(d3d, &d3d->defaultBlitPipeline);
 	D3D11Func_SetVertexShader(d3d, &d3d->defaultBlitPipeline);
 	D3D11Func_SetPixelShader(d3d, &d3d->defaultBlitPipeline);
+
+	d3d->defaultBlitPipeline.samplerStates[PIPELINE_STAGE_PIXEL][0] = d3d->linearSamplerState;
+	d3d->defaultBlitPipeline.resourceStates[PIPELINE_STAGE_PIXEL][0] = surface->srv;
+
+	D3D11SurfaceFunc_BindSamplers(d3d, d3d->defaultBlitPipeline.samplerStates[PIPELINE_STAGE_PIXEL], PIPELINE_STAGE_PIXEL, 1);
+	D3D11SurfaceFunc_BindResources(d3d, d3d->defaultBlitPipeline.resourceStates[PIPELINE_STAGE_PIXEL], PIPELINE_STAGE_PIXEL, 1);
 
 	D3DVIEWPORT7 vp;
 	vp.dwX = lpDestRect->left;
