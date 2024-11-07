@@ -106,12 +106,8 @@ struct D3D11
 
 struct ShaderConstants
 {
-	DirectX::XMFLOAT4 testColor;
-};
-
-struct ShaderConstants2
-{
-	DirectX::XMFLOAT4 testColor2;
+	DirectX::XMFLOAT4 tint;				
+	DirectX::XMFLOAT4 sampleParameters; // xy width height in normalized space
 };
 
 // Private Member Functions
@@ -1114,6 +1110,15 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* surface, LPRECT lpDes
 	{  DirectX::XMFLOAT3{ 1.0f, -1.f, 0.0f }, DirectX::XMFLOAT3{ 0, 1, 1 }, DirectX::XMFLOAT2{ 1, 1 }},
 	};
 
+	D3D11_TEXTURE2D_DESC desc;
+	surface->texture->GetDesc(&desc);
+
+	float x = float(lpSrcRect->left) / float(desc.Width);
+	float y = float(lpSrcRect->top) / float(desc.Height);
+	float w = float(lpSrcRect->right - lpSrcRect->left) / float(desc.Width);
+	float h = float(lpSrcRect->bottom - lpSrcRect->top) / float(desc.Height);
+
+
 	D3D11Func_InitPipelineShaders(&d3d, &d3d->defaultBlitPipeline, 
 		L"shaders/Main.vs.hlsl",
 		L"shaders/Main.ps.hlsl", PIPELINE_SHADER_FILE);
@@ -1126,18 +1131,12 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* surface, LPRECT lpDes
 	D3D11Func_SetPixelShader(d3d, &d3d->defaultBlitPipeline);
 
 	ShaderConstants constants;
-	constants.testColor = DirectX::XMFLOAT4(1, 1, 1, 1); 
-
+	constants.tint = DirectX::XMFLOAT4(1, 1, 1, 1); 
+	constants.sampleParameters = DirectX::XMFLOAT4(x, y, w, h);
 	D3D11Func_CreateConstantBuffer(&d3d, d3d->defaultBlitPipeline.constantBuffers[PIPELINE_STAGE_PIXEL][0], nullptr, sizeof(ShaderConstants));
 	D3D11Func_UpdateConstantBuffer(&d3d, d3d->defaultBlitPipeline.constantBuffers[PIPELINE_STAGE_PIXEL][0], &constants, sizeof(ShaderConstants));
 
-	ShaderConstants constants2;
-	constants2.testColor = DirectX::XMFLOAT4(1, 1,1, 1);
-	
-	D3D11Func_CreateConstantBuffer(&d3d, d3d->defaultBlitPipeline.constantBuffers[PIPELINE_STAGE_PIXEL][1], nullptr, sizeof(ShaderConstants2));
-	D3D11Func_UpdateConstantBuffer(&d3d, d3d->defaultBlitPipeline.constantBuffers[PIPELINE_STAGE_PIXEL][1], &constants2, sizeof(ShaderConstants2));
-
-	D3D11Func_BindConstantBuffers(d3d, d3d->defaultBlitPipeline.constantBuffers[PIPELINE_STAGE_PIXEL], PIPELINE_STAGE_PIXEL, 2);
+	D3D11Func_BindConstantBuffers(d3d, d3d->defaultBlitPipeline.constantBuffers[PIPELINE_STAGE_PIXEL], PIPELINE_STAGE_PIXEL, 1);
 
 	d3d->defaultBlitPipeline.samplerStates[PIPELINE_STAGE_PIXEL][0] = d3d->linearSamplerState;
 	d3d->defaultBlitPipeline.resourceStates[PIPELINE_STAGE_PIXEL][0] = surface->srv;

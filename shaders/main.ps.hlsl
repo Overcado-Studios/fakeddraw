@@ -17,12 +17,17 @@ struct PSOutput
 
 cbuffer ShaderConstants : register(b0)
 {
-    float4 g_TintTest;
+    float4 g_tint;
+    float4 g_sampleParameters;
 };
 
 PSOutput Main(PSInput input)
 {
     PSOutput output = (PSOutput) 0;
-    output.color = Tex.Sample(TexSampler, input.uv) * g_TintTest;
+    
+    float2 uv = input.uv;
+    uv *= g_sampleParameters.zw; // scale 
+    uv += g_sampleParameters.xy; // translate
+    output.color = Tex.Sample(TexSampler, uv) * g_tint;
     return output;
 }
