@@ -429,26 +429,27 @@ bool D3D11Func_CreateVertexShaderInputLayout(D3D11** ppd3d, D3D11Pipeline* pipel
 	return true;
 }
 
-HRESULT D3D11Func_UpdateConstantBuffer(D3D11** ppd3d, ComPtr<ID3D11Buffer> pBuffer, void* pData, size_t size)
+HRESULT D3D11Func_UpdateConstantBuffer(D3D11** ppd3d, D3D11Pipeline* pipeline, int slot, PipelineStage stage, void* pData, size_t size)
 {
-	if (!pBuffer)
+	if (!pipeline->constantBuffers[stage][slot])
 	{
-		return S_OK;
+		DISPDBG_FP(0, "ERROR: D3D11: Tried to update null constant buffer");
+		return E_FAIL;
 	}
 
 	D3D11_MAPPED_SUBRESOURCE mapped;
-	HRESULT hr = (*ppd3d)->context->Map(pBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+	HRESULT hr = (*ppd3d)->context->Map(pipeline->constantBuffers[stage][slot].Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
 	if (FAILED(hr)) { DISPDBG_FP(0, "ERROR: ID3D11DeviceContext::Map() returned" << std::hex << hr); return hr; }
 
 	memcpy(mapped.pData, pData, size);
 
-	(*ppd3d)->context->Unmap(pBuffer.Get(), 0);
+	(*ppd3d)->context->Unmap(pipeline->constantBuffers[stage][slot].Get(), 0);
 }
 
-HRESULT D3D11Func_CreateConstantBuffer(D3D11** ppd3d, ComPtr<ID3D11Buffer> &pBuffer, void* pInitialData, size_t size)
+HRESULT D3D11Func_CreateConstantBuffer(D3D11** ppd3d, D3D11Pipeline * pipeline, int slot, PipelineStage stage, void* pInitialData, size_t size)
 {
 	// already initialized
-	if (pBuffer)
+	if (pipeline->constantBuffers[stage][slot])
 	{
 		return S_OK;
 	}
@@ -468,31 +469,31 @@ HRESULT D3D11Func_CreateConstantBuffer(D3D11** ppd3d, ComPtr<ID3D11Buffer> &pBuf
 		D3D11_SUBRESOURCE_DATA resourceData = {};
 		resourceData.pSysMem = pInitialData;
 
-		HRESULT hr = (*ppd3d)->device->CreateBuffer(&desc, &resourceData, &pBuffer);
-		if (FAILED(hr) || !pBuffer) { DISPDBG_FP(0, "ERROR: ID3D11Device::CreateBuffer() returned" << std::hex << hr); return hr; }
+		HRESULT hr = (*ppd3d)->device->CreateBuffer(&desc, &resourceData, &pipeline->constantBuffers[stage][slot]);
+		if (FAILED(hr) || !pipeline->constantBuffers[stage][slot]) { DISPDBG_FP(0, "ERROR: ID3D11Device::CreateBuffer() returned" << std::hex << hr); return hr; }
 	}
 	else
 	{
-		HRESULT hr = (*ppd3d)->device->CreateBuffer(&desc, nullptr, &pBuffer);
-		if (FAILED(hr) || !pBuffer) { DISPDBG_FP(0, "ERROR: ID3D11Device::CreateBuffer() returned" << std::hex << hr); return hr; }
+		HRESULT hr = (*ppd3d)->device->CreateBuffer(&desc, nullptr, &pipeline->constantBuffers[stage][slot]);
+		if (FAILED(hr) || !pipeline->constantBuffers[stage][slot]) { DISPDBG_FP(0, "ERROR: ID3D11Device::CreateBuffer() returned" << std::hex << hr); return hr; }
 	}
 	
 
 	return S_OK;
 }
 
-HRESULT D3D11Func_BindConstantBuffers(D3D11* d3d, ComPtr<ID3D11Buffer>* constantBuffers, PipelineStage pipelineStage, int count)
+HRESULT D3D11Func_BindConstantBuffers(D3D11* d3d, D3D11Pipeline* pipeline, PipelineStage pipelineStage, int count)
 {
 	switch (pipelineStage)
 	{
 	case PIPELINE_STAGE_VERTEX:
-		d3d->context->VSSetConstantBuffers(0, count, constantBuffers->GetAddressOf());
+		d3d->context->VSSetConstantBuffers(0, count, pipeline->constantBuffers[pipelineStage]->GetAddressOf());
 		break;
 	case PIPELINE_STAGE_PIXEL:
-		d3d->context->PSSetConstantBuffers(0, count, constantBuffers->GetAddressOf());
+		d3d->context->PSSetConstantBuffers(0, count, pipeline->constantBuffers[pipelineStage]->GetAddressOf());
 		break;
 	case PIPELINE_STAGE_COMPUTE:
-		d3d->context->CSSetConstantBuffers(0, count, constantBuffers->GetAddressOf());
+		d3d->context->CSSetConstantBuffers(0, count, pipeline->constantBuffers[pipelineStage]->GetAddressOf());
 		break;
 	}
 
@@ -583,36 +584,36 @@ ComPtr<ID3D11PixelShader> D3D11Func_CreatePixelShader(D3D11** ppd3d, const std::
 	return pixelShader;
 }
 
-HRESULT D3D11Func_BindResources(D3D11* d3d, ComPtr<ID3D11ShaderResourceView>* resourceStates, PipelineStage pipelineStage, int count)
+HRESULT D3D11Func_BindResources(D3D11* d3d, D3D11Pipeline* pipeline, PipelineStage pipelineStage, int count)
 {
 	switch (pipelineStage)
 	{
 	case PIPELINE_STAGE_VERTEX:
-		d3d->context->VSSetShaderResources(0, count, resourceStates->GetAddressOf());
+		d3d->context->VSSetShaderResources(0, count, pipeline->resourceStates[pipelineStage]->GetAddressOf());
 		break;
 	case PIPELINE_STAGE_PIXEL:
-		d3d->context->PSSetShaderResources(0, count, resourceStates->GetAddressOf());
+		d3d->context->PSSetShaderResources(0, count, pipeline->resourceStates[pipelineStage]->GetAddressOf());
 		break;
 	case PIPELINE_STAGE_COMPUTE:
-		d3d->context->CSSetShaderResources(0, count, resourceStates->GetAddressOf());
+		d3d->context->CSSetShaderResources(0, count, pipeline->resourceStates[pipelineStage]->GetAddressOf());
 		break;
 	}
 
 	return S_OK;
 }
 
-HRESULT D3D11Func_BindSamplers(D3D11* d3d, ComPtr<ID3D11SamplerState>* samplerStates, PipelineStage pipelineStage, int count)
+HRESULT D3D11Func_BindSamplers(D3D11* d3d, D3D11Pipeline* pipeline, PipelineStage pipelineStage, int count)
 {
 	switch (pipelineStage)
 	{
 	case PIPELINE_STAGE_VERTEX:
-		d3d->context->VSSetSamplers(0, count, samplerStates->GetAddressOf());
+		d3d->context->VSSetSamplers(0, count, pipeline->samplerStates[pipelineStage]->GetAddressOf());
 		break;
 	case PIPELINE_STAGE_PIXEL:
-		d3d->context->PSSetSamplers(0, count, samplerStates->GetAddressOf());
+		d3d->context->PSSetSamplers(0, count, pipeline->samplerStates[pipelineStage]->GetAddressOf());
 		break;
 	case PIPELINE_STAGE_COMPUTE:
-		d3d->context->CSSetSamplers(0, count, samplerStates->GetAddressOf());
+		d3d->context->CSSetSamplers(0, count, pipeline->samplerStates[pipelineStage]->GetAddressOf());
 		break;
 	}
 
@@ -1133,19 +1134,20 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* surface, LPRECT lpDes
 	ShaderConstants constants;
 	constants.tint = DirectX::XMFLOAT4(1, 1, 1, 1); 
 	constants.sampleParameters = DirectX::XMFLOAT4(x, y, w, h);
-	D3D11Func_CreateConstantBuffer(&d3d, d3d->defaultBlitPipeline.constantBuffers[PIPELINE_STAGE_PIXEL][0], nullptr, sizeof(ShaderConstants));
-	D3D11Func_UpdateConstantBuffer(&d3d, d3d->defaultBlitPipeline.constantBuffers[PIPELINE_STAGE_PIXEL][0], &constants, sizeof(ShaderConstants));
+	D3D11Func_CreateConstantBuffer(&d3d, &d3d->defaultBlitPipeline, 0, PIPELINE_STAGE_PIXEL, &constants, sizeof(ShaderConstants));
+	D3D11Func_UpdateConstantBuffer(&d3d, &d3d->defaultBlitPipeline, 0, PIPELINE_STAGE_PIXEL, &constants, sizeof(ShaderConstants));
+	D3D11Func_BindConstantBuffers(d3d, &d3d->defaultBlitPipeline, PIPELINE_STAGE_PIXEL, 1);
 
-	D3D11Func_BindConstantBuffers(d3d, d3d->defaultBlitPipeline.constantBuffers[PIPELINE_STAGE_PIXEL], PIPELINE_STAGE_PIXEL, 1);
-
+	// set our samplers and then bind
 	d3d->defaultBlitPipeline.samplerStates[PIPELINE_STAGE_PIXEL][0] = d3d->linearSamplerState;
+	D3D11Func_BindSamplers(d3d, &d3d->defaultBlitPipeline, PIPELINE_STAGE_PIXEL, 1);
+
+	// set our resources / textures and then bind
 	d3d->defaultBlitPipeline.resourceStates[PIPELINE_STAGE_PIXEL][0] = surface->srv;
+	D3D11Func_BindResources(d3d, &d3d->defaultBlitPipeline, PIPELINE_STAGE_PIXEL, 1);
 
-	D3D11Func_BindSamplers(d3d, d3d->defaultBlitPipeline.samplerStates[PIPELINE_STAGE_PIXEL], PIPELINE_STAGE_PIXEL, 1);
-	D3D11Func_BindResources(d3d, d3d->defaultBlitPipeline.resourceStates[PIPELINE_STAGE_PIXEL], PIPELINE_STAGE_PIXEL, 1);
-
+	// do the drawing
 	D3D11Func_Draw(d3d, &d3d->defaultBlitPipeline);
-
 
 	// copy method
 	/*
