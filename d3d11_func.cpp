@@ -63,6 +63,13 @@ struct D3D11Surface
 	DDSURFACEDESC2				ddsd;
 };
 
+enum PipelineShaderType
+{
+	PIPELINE_SHADER_FILE,		// shader came from vs.hlsl / ps.hlsl
+	PIPELINE_SHADER_SRC,		// shader came from an ascii string
+	PIPELINE_SHADER_BLOB		// shader precompiled
+};
+
 struct D3D11Pipeline
 {
 	ComPtr<ID3D11VertexShader> vertexShader = nullptr;
@@ -108,13 +115,11 @@ struct ShaderConstants2
 };
 
 // Private Member Functions
-ComPtr<ID3D11VertexShader> D3D11Func_CreateVertexShaderFromFile(D3D11** ppd3d, const std::wstring& fileName, ComPtr<ID3DBlob>& vertexShaderBlob);
-ComPtr<ID3D11PixelShader> D3D11Func_CreatePixelShaderFromFile(D3D11** ppd3d, const std::wstring& fileName, ComPtr<ID3DBlob>& pixelShaderBlob);
-ComPtr<ID3D11VertexShader> D3D11Func_CreateVertexShader(D3D11** ppd3d, const std::wstring& pData, ComPtr<ID3DBlob>& vertexShaderBlob);
-ComPtr<ID3D11PixelShader> D3D11Func_CreatePixelShader(D3D11** ppd3d, const std::wstring& pData, ComPtr<ID3DBlob>& pixelShaderBlob);
+ComPtr<ID3D11VertexShader> D3D11Func_CreateVertexShader(D3D11** ppd3d, const std::wstring& pData, ComPtr<ID3DBlob>& vertexShaderBlob, PipelineShaderType type);
+ComPtr<ID3D11PixelShader> D3D11Func_CreatePixelShader(D3D11** ppd3d, const std::wstring& pData, ComPtr<ID3DBlob>& pixelShaderBlob, PipelineShaderType type);
 
 
-HRESULT D3D11Func_InitPipelineShadersFromFile(D3D11** ppd3d, D3D11Pipeline* pipeline, const std::wstring vertexShaderName, const std::wstring pixelShaderName);
+HRESULT D3D11Func_InitPipelineShaders(D3D11** ppd3d, D3D11Pipeline* pipeline, const std::wstring vertexShaderName, const std::wstring pixelShaderName, PipelineShaderType type);
 HRESULT D3D11func_CreateDefaultSamplers(D3D11* d3d);
 bool	D3D11Func_ShaderManager_Init(D3D11** ppd3d);
 bool	D3D11Func_ShaderManager_Shutdown(D3D11** ppd3d);
@@ -221,11 +226,11 @@ bool D3D11Func_InitializeShaderSystem(D3D11** ppd3d)
 	return false;
 }
 
-HRESULT D3D11Func_InitPipelineShadersFromFile(D3D11** ppd3d, D3D11Pipeline* pipeline, const std::wstring vertexShaderName, const std::wstring pixelShaderName)
+HRESULT D3D11Func_InitPipelineShaders(D3D11** ppd3d, D3D11Pipeline* pipeline, const std::wstring vertexShaderName, const std::wstring pixelShaderName, PipelineShaderType type)
 {
 	if (!pipeline->vertexShader)
 	{
-		pipeline->vertexShader = D3D11Func_CreateVertexShaderFromFile(ppd3d, vertexShaderName, pipeline->vertexShaderBlob);
+		pipeline->vertexShader = D3D11Func_CreateVertexShader(ppd3d, vertexShaderName, pipeline->vertexShaderBlob, type);
 		if (pipeline->vertexShader == nullptr)
 		{
 			return E_FAIL;
@@ -234,30 +239,7 @@ HRESULT D3D11Func_InitPipelineShadersFromFile(D3D11** ppd3d, D3D11Pipeline* pipe
 	
 	if (!pipeline->pixelShader)
 	{
-		pipeline->pixelShader = D3D11Func_CreatePixelShaderFromFile(ppd3d, pixelShaderName, pipeline->pixelShaderBlob);
-		if (pipeline->pixelShader == nullptr)
-		{
-			return E_FAIL;
-		}
-	}
-
-	return S_OK;
-}
-
-HRESULT D3D11Func_InitPipelineShaders(D3D11** ppd3d, D3D11Pipeline* pipeline, const std::wstring vertexShaderSrc, const std::wstring pixelShaderSrc)
-{
-	if (!pipeline->vertexShader)
-	{
-		pipeline->vertexShader = D3D11Func_CreateVertexShader(ppd3d, vertexShaderSrc, pipeline->vertexShaderBlob);
-		if (pipeline->vertexShader == nullptr)
-		{
-			return E_FAIL;
-		}
-	}
-
-	if (!pipeline->pixelShader)
-	{
-		pipeline->pixelShader = D3D11Func_CreatePixelShader(ppd3d, pixelShaderSrc, pipeline->pixelShaderBlob);
+		pipeline->pixelShader = D3D11Func_CreatePixelShader(ppd3d, pixelShaderName, pipeline->pixelShaderBlob, type);
 		if (pipeline->pixelShader == nullptr)
 		{
 			return E_FAIL;
@@ -352,39 +334,39 @@ bool D3D11Func_ShaderManager_Shutdown(D3D11** ppd3d)
 	return true;
 }
 
-bool D3D11Func_CompileShaderFromFile(const std::wstring& fileName,
-	const std::string& entryPoint,
-	const std::string& profile, ComPtr<ID3DBlob>& shaderBlob)
-{
-	constexpr UINT compileFlags = D3DCOMPILE_ENABLE_STRICTNESS;
-
-	ComPtr<ID3DBlob> tempShaderBlob = nullptr;
-	ComPtr<ID3DBlob> errorBlob = nullptr;
-
-	HRESULT hr = D3DCompileFromFile(fileName.data(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-		entryPoint.data(), profile.data(), compileFlags, 0, &tempShaderBlob, &errorBlob);
-
-	if (FAILED(hr) || errorBlob)
-	{ 
-		const char* errorMsg = (const char*)errorBlob->GetBufferPointer();  
-		DISPDBG_FP(0, "ERROR: D3DCompileFromFile() returned" << std::hex << hr << "\n Shader Compilation error message: \n" << errorMsg); return hr; 
-	}
-
-	shaderBlob = std::move(tempShaderBlob);
-	return true;
-}
-
 bool D3D11Func_CompileShader(const std::wstring& src,
 	const std::string& entryPoint,
-	const std::string& profile, ComPtr<ID3DBlob>& shaderBlob)
+	const std::string& profile, ComPtr<ID3DBlob>& shaderBlob, PipelineShaderType type)
 {
+	if (type == PIPELINE_SHADER_BLOB && shaderBlob)
+	{
+		// we already have precompiled blob, no need to run the compilation process below.
+		return true;
+	}
+	else if (type == PIPELINE_SHADER_BLOB && !shaderBlob)
+	{
+		DISPDBG_FP(0, "ERROR: D3D11Func_CompileShader() error: CompileShader called with PIPELINE_SHADER_BLOB, but no data provided.");
+		return false;
+	}
+
 	constexpr UINT compileFlags = D3DCOMPILE_ENABLE_STRICTNESS;
 
 	ComPtr<ID3DBlob> tempShaderBlob = nullptr;
 	ComPtr<ID3DBlob> errorBlob = nullptr;
 
-	HRESULT hr = D3DCompile(src.data(), src.size(), nullptr, nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-		entryPoint.data(), profile.data(), compileFlags, 0, &tempShaderBlob, &errorBlob);
+	HRESULT hr;
+
+	switch (type)
+	{
+	case PIPELINE_SHADER_FILE:
+		hr = D3DCompileFromFile(src.data(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+			entryPoint.data(), profile.data(), compileFlags, 0, &tempShaderBlob, &errorBlob);
+		break;
+	case PIPELINE_SHADER_SRC:
+		hr = D3DCompile(src.data(), src.size(), nullptr, nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+			entryPoint.data(), profile.data(), compileFlags, 0, &tempShaderBlob, &errorBlob);
+		break;
+	};
 
 	if (FAILED(hr) || errorBlob)
 	{
@@ -557,57 +539,9 @@ bool D3D11Func_CreateVertexBuffer(D3D11** ppd3d, D3D11Pipeline* pipeline, Vertex
 	return true;
 }
 
-ComPtr<ID3D11VertexShader> D3D11Func_CreateVertexShaderFromFile(D3D11** ppd3d, const std::wstring& fileName, ComPtr<ID3DBlob>& vertexShaderBlob)
+ComPtr<ID3D11VertexShader> D3D11Func_CreateVertexShader(D3D11** ppd3d, const std::wstring& pData, ComPtr<ID3DBlob>& vertexShaderBlob, PipelineShaderType type)
 {
-	if (!D3D11Func_CompileShaderFromFile(fileName, "Main", "vs_5_0", vertexShaderBlob))
-	{
-		return nullptr;
-	}
-
-	ComPtr<ID3D11VertexShader> vertexShader;
-
-	HRESULT hr = (*ppd3d)->device->CreateVertexShader(
-		vertexShaderBlob->GetBufferPointer(),
-		vertexShaderBlob->GetBufferSize(),
-		nullptr,
-		&vertexShader);
-
-	if (FAILED(hr))
-	{
-		DISPDBG_FP(0, "ERROR: D3D11: Failed to compile vertex shader" << std::hex << hr);
-		return nullptr;
-	}
-
-	return vertexShader;
-}
-
-ComPtr<ID3D11PixelShader> D3D11Func_CreatePixelShaderFromFile(D3D11** ppd3d, const std::wstring& fileName, ComPtr<ID3DBlob>& pixelShaderBlob)
-{
-	if (!D3D11Func_CompileShaderFromFile(fileName, "Main", "ps_5_0", pixelShaderBlob))
-	{
-		return nullptr;
-	}
-
-	ComPtr<ID3D11PixelShader> pixelShader;
-
-	HRESULT hr = (*ppd3d)->device->CreatePixelShader(
-		pixelShaderBlob->GetBufferPointer(),
-		pixelShaderBlob->GetBufferSize(),
-		nullptr,
-		&pixelShader);
-
-	if (FAILED(hr))
-	{
-		DISPDBG_FP(0, "ERROR: D3D11: Failed to compile pixel shader" << std::hex << hr);
-		return nullptr;
-	}
-
-	return pixelShader;
-}
-
-ComPtr<ID3D11VertexShader> D3D11Func_CreateVertexShader(D3D11** ppd3d, const std::wstring& pData, ComPtr<ID3DBlob>& vertexShaderBlob)
-{
-	if (!D3D11Func_CompileShader(pData, "Main", "vs_5_0", vertexShaderBlob))
+	if (!D3D11Func_CompileShader(pData, "Main", "vs_5_0", vertexShaderBlob, type))
 	{
 		return nullptr;
 	}
@@ -629,9 +563,9 @@ ComPtr<ID3D11VertexShader> D3D11Func_CreateVertexShader(D3D11** ppd3d, const std
 	return vertexShader;
 }
 
-ComPtr<ID3D11PixelShader> D3D11Func_CreatePixelShader(D3D11** ppd3d, const std::wstring& pData, ComPtr<ID3DBlob>& pixelShaderBlob)
+ComPtr<ID3D11PixelShader> D3D11Func_CreatePixelShader(D3D11** ppd3d, const std::wstring& pData, ComPtr<ID3DBlob>& pixelShaderBlob, PipelineShaderType type)
 {
-	if (!D3D11Func_CompileShader(pData, "Main", "ps_5_0", pixelShaderBlob))
+	if (!D3D11Func_CompileShader(pData, "Main", "ps_5_0", pixelShaderBlob, type))
 	{
 		return nullptr;
 	}
@@ -1180,9 +1114,9 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* surface, LPRECT lpDes
 	{  DirectX::XMFLOAT3{ 1.0f, -1.f, 0.0f }, DirectX::XMFLOAT3{ 0, 1, 1 }, DirectX::XMFLOAT2{ 1, 1 }},
 	};
 
-	D3D11Func_InitPipelineShadersFromFile(&d3d, &d3d->defaultBlitPipeline, 
+	D3D11Func_InitPipelineShaders(&d3d, &d3d->defaultBlitPipeline, 
 		L"shaders/Main.vs.hlsl",
-		L"shaders/Main.ps.hlsl");
+		L"shaders/Main.ps.hlsl", PIPELINE_SHADER_FILE);
 
 	D3D11Func_CreateVertexShaderInputLayout(&d3d, &d3d->defaultBlitPipeline);
 	D3D11Func_CreateVertexBuffer(&d3d, &d3d->defaultBlitPipeline, vertices, ARRAYSIZE(vertices));
@@ -1198,7 +1132,7 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* surface, LPRECT lpDes
 	D3D11Func_UpdateConstantBuffer(&d3d, d3d->defaultBlitPipeline.constantBuffers[PIPELINE_STAGE_PIXEL][0], &constants, sizeof(ShaderConstants));
 
 	ShaderConstants constants2;
-	constants2.testColor = DirectX::XMFLOAT4(1, 0, 0, 1);
+	constants2.testColor = DirectX::XMFLOAT4(1, 1,1, 1);
 	
 	D3D11Func_CreateConstantBuffer(&d3d, d3d->defaultBlitPipeline.constantBuffers[PIPELINE_STAGE_PIXEL][1], nullptr, sizeof(ShaderConstants2));
 	D3D11Func_UpdateConstantBuffer(&d3d, d3d->defaultBlitPipeline.constantBuffers[PIPELINE_STAGE_PIXEL][1], &constants2, sizeof(ShaderConstants2));
