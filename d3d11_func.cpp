@@ -364,16 +364,10 @@ bool D3D11Func_CompileShaderFromFile(const std::wstring& fileName,
 	HRESULT hr = D3DCompileFromFile(fileName.data(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		entryPoint.data(), profile.data(), compileFlags, 0, &tempShaderBlob, &errorBlob);
 
-	if (FAILED(hr))
-	{
-		std::cout << "D3D11: Failed to read shader from file\n";
-		if (errorBlob != nullptr)
-		{
-			std::cout << "D3D11: With message: " <<
-				static_cast<const char*>(errorBlob->GetBufferPointer()) << "\n";
-		}
-
-		return false;
+	if (FAILED(hr) || errorBlob)
+	{ 
+		const char* errorMsg = (const char*)errorBlob->GetBufferPointer();  
+		DISPDBG_FP(0, "ERROR: D3DCompileFromFile() returned" << std::hex << hr << "\n Shader Compilation error message: \n" << errorMsg); return hr; 
 	}
 
 	shaderBlob = std::move(tempShaderBlob);
@@ -392,16 +386,10 @@ bool D3D11Func_CompileShader(const std::wstring& src,
 	HRESULT hr = D3DCompile(src.data(), src.size(), nullptr, nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		entryPoint.data(), profile.data(), compileFlags, 0, &tempShaderBlob, &errorBlob);
 
-	if (FAILED(hr))
+	if (FAILED(hr) || errorBlob)
 	{
-		std::cout << "D3D11: Failed to read shader from file\n";
-		if (errorBlob != nullptr)
-		{
-			std::cout << "D3D11: With message: " <<
-				static_cast<const char*>(errorBlob->GetBufferPointer()) << "\n";
-		}
-
-		return false;
+		const char* errorMsg = (const char*)errorBlob->GetBufferPointer();
+		DISPDBG_FP(0, "ERROR: D3DCompile() returned" << std::hex << hr << "\n Shader Compilation error message: \n" << errorMsg); return hr;
 	}
 
 	shaderBlob = std::move(tempShaderBlob);
@@ -634,7 +622,7 @@ ComPtr<ID3D11VertexShader> D3D11Func_CreateVertexShader(D3D11** ppd3d, const std
 
 	if (FAILED(hr))
 	{
-		DISPDBG_FP(0, "ERROR: D3D11: Failed to compile vertex shader" << std::hex << hr);
+		DISPDBG_FP(0, "ERROR: D3D11: Failed to create vertex shader" << std::hex << hr);
 		return nullptr;
 	}
 
@@ -658,7 +646,7 @@ ComPtr<ID3D11PixelShader> D3D11Func_CreatePixelShader(D3D11** ppd3d, const std::
 
 	if (FAILED(hr))
 	{
-		DISPDBG_FP(0, "ERROR: D3D11: Failed to compile pixel shader" << std::hex << hr);
+		DISPDBG_FP(0, "ERROR: D3D11: Failed to create pixel shader" << std::hex << hr);
 		return nullptr;
 	}
 
@@ -1168,7 +1156,6 @@ HRESULT D3D11SurfaceFunc_Blt( D3D11* d3d, D3D11Surface* surface,  LPRECT lpDestR
 
 	return E_FAIL;
 }
-
 
 HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* surface, LPRECT lpDestRect, LPRECT lpSrcRect, DWORD dwTrans )
 {
