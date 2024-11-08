@@ -86,6 +86,17 @@ struct D3D11Pipeline
 	ComPtr<ID3D11Buffer>					constantBuffers[PIPELINE_STAGE_COUNT][RESOURCE_STATE_COUNT];	
 };
 
+struct GlobalShaderSwitches
+{
+	DirectX::XMINT4 switch_reserved;
+};
+
+struct GlobalShaderConstants
+{
+	DirectX::XMFLOAT4 const_reserved; 
+};
+
+
 struct D3D11
 {
 	ID3D11Device* device;
@@ -101,13 +112,12 @@ struct D3D11
 
 	// Default Samplers
 	ComPtr<ID3D11SamplerState> linearSamplerState;
-};
 
+	ComPtr<ID3D11Buffer>		globalShaderSwitches;
+	ComPtr<ID3D11Buffer>		globalShaderConstants;
 
-struct ShaderConstants
-{
-	DirectX::XMFLOAT4 tint;				
-	DirectX::XMFLOAT4 sampleParameters; // xy width height in normalized space
+	GlobalShaderConstants constants;
+	GlobalShaderSwitches switches;
 };
 
 // Private Member Functions
@@ -116,11 +126,13 @@ ComPtr<ID3D11PixelShader> D3D11Func_CreatePixelShader(D3D11** ppd3d, const std::
 
 
 HRESULT D3D11Func_InitPipelineShaders(D3D11** ppd3d, D3D11Pipeline* pipeline, const std::wstring vertexShaderName, const std::wstring pixelShaderName, PipelineShaderType type);
-HRESULT D3D11func_CreateDefaultSamplers(D3D11* d3d);
+HRESULT D3D11Func_CreateDefaultSamplers(D3D11* d3d);
+HRESULT D3D11Func_CreateDefaultConstantBuffers(D3D11* d3d);
+HRESULT D3D11Func_CreateConstantBuffer(D3D11** ppd3d, ComPtr<ID3D11Buffer>& pBuffer, void* pInitialData, size_t size);
 bool	D3D11Func_ShaderManager_Init(D3D11** ppd3d);
 bool	D3D11Func_ShaderManager_Shutdown(D3D11** ppd3d);
 bool	D3D11Func_ShutdownPipelineResources(D3D11** ppd3d, D3D11Pipeline* pipeline);
-bool	D3D11Func_CompileShader(const std::wstring& fileName, const std::string& entryPoint, const std::string& profile, ComPtr<ID3DBlob>& shaderBlob);
+bool	D3D11Func_CompileShader(const std::wstring& fileName, const std::string& entryPoint, const std::string& profile, ComPtr<ID3DBlob>& shaderBlob, PipelineShaderType type);
 bool	D3D11Func_CreateVertexShaderInputLayout(D3D11** ppd3d, D3D11Pipeline* pipeline);
 bool	D3D11Func_CreateVertexBuffer(D3D11** ppd3d, D3D11Pipeline* pipeline, VertexProperties* vertices, int vertexCount);
 
@@ -199,6 +211,16 @@ HRESULT D3D11Func_CreateDevice( D3D11** ppd3d, HWND hwnd )
 void D3D11Func_ReleaseDevice( D3D11** ppd3d )
 {
 	D3D11Func_ShutdownPipelineResources(ppd3d, &(*ppd3d)->defaultBlitPipeline);
+
+	if ((*ppd3d)->globalShaderConstants)
+	{
+		(*ppd3d)->globalShaderConstants->Release();
+	}
+
+	if ((*ppd3d)->globalShaderSwitches)
+	{
+		(*ppd3d)->globalShaderSwitches->Release();
+	}
 
 	if( (*ppd3d)->swapchain )
 	{
@@ -315,8 +337,13 @@ bool D3D11Func_ShutdownPipelineResources(D3D11** ppd3d, D3D11Pipeline* pipeline)
 
 bool D3D11Func_ShaderManager_Init( D3D11** ppd3d )
 {
-	HRESULT hr = D3D11func_CreateDefaultSamplers(*ppd3d);
+	HRESULT hr = D3D11Func_CreateDefaultSamplers(*ppd3d);
+	if (FAILED(hr))
+	{
+		return false;
+	}
 
+	hr = D3D11Func_CreateDefaultConstantBuffers(*ppd3d);
 	if (FAILED(hr))
 	{
 		return false;
@@ -456,10 +483,10 @@ HRESULT D3D11Func_UpdateConstantBuffer(D3D11** ppd3d, D3D11Pipeline* pipeline, i
 	(*ppd3d)->context->Unmap(pipeline->constantBuffers[stage][slot].Get(), 0);
 }
 
-HRESULT D3D11Func_CreateConstantBuffer(D3D11** ppd3d, D3D11Pipeline * pipeline, int slot, PipelineStage stage, void* pInitialData, size_t size)
+HRESULT D3D11Func_CreateConstantBuffer(D3D11** ppd3d, ComPtr<ID3D11Buffer>& pBuffer, void* pInitialData, size_t size)
 {
 	// already initialized
-	if (pipeline->constantBuffers[stage][slot])
+	if (pBuffer)
 	{
 		return S_OK;
 	}
@@ -479,17 +506,22 @@ HRESULT D3D11Func_CreateConstantBuffer(D3D11** ppd3d, D3D11Pipeline * pipeline, 
 		D3D11_SUBRESOURCE_DATA resourceData = {};
 		resourceData.pSysMem = pInitialData;
 
-		HRESULT hr = (*ppd3d)->device->CreateBuffer(&desc, &resourceData, &pipeline->constantBuffers[stage][slot]);
-		if (FAILED(hr) || !pipeline->constantBuffers[stage][slot]) { DISPDBG_FP(0, "ERROR: ID3D11Device::CreateBuffer() returned" << std::hex << hr); return hr; }
+		HRESULT hr = (*ppd3d)->device->CreateBuffer(&desc, &resourceData, &pBuffer);
+		if (FAILED(hr) || !pBuffer) { DISPDBG_FP(0, "ERROR: ID3D11Device::CreateBuffer() returned" << std::hex << hr); return hr; }
 	}
 	else
 	{
-		HRESULT hr = (*ppd3d)->device->CreateBuffer(&desc, nullptr, &pipeline->constantBuffers[stage][slot]);
-		if (FAILED(hr) || !pipeline->constantBuffers[stage][slot]) { DISPDBG_FP(0, "ERROR: ID3D11Device::CreateBuffer() returned" << std::hex << hr); return hr; }
+		HRESULT hr = (*ppd3d)->device->CreateBuffer(&desc, nullptr, &pBuffer);
+		if (FAILED(hr) || !pBuffer) { DISPDBG_FP(0, "ERROR: ID3D11Device::CreateBuffer() returned" << std::hex << hr); return hr; }
 	}
-	
+
 
 	return S_OK;
+}
+
+HRESULT D3D11Func_CreateConstantBuffer(D3D11** ppd3d, D3D11Pipeline * pipeline, int slot, PipelineStage stage, void* pInitialData, size_t size)
+{
+	return D3D11Func_CreateConstantBuffer(ppd3d, pipeline->constantBuffers[stage][slot], pInitialData, size);
 }
 
 HRESULT D3D11Func_BindConstantBuffers(D3D11* d3d, D3D11Pipeline* pipeline, PipelineStage pipelineStage, int count)
@@ -646,7 +678,7 @@ HRESULT D3D11Func_SetDisplayMode( D3D11* d3d, int width, int height, int bpp, in
 	dmd.RefreshRate.Denominator = 1;
 	dmd.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 	dmd.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-	dmd.Format  =DXGI_FORMAT_B8G8R8A8_UNORM;
+	dmd.Format  = DXGI_FORMAT_B8G8R8A8_UNORM;
 
 	hr = d3d->swapchain->SetFullscreenState( fullscreen, NULL );
 	if( FAILED( hr ) ) return hr;
@@ -860,7 +892,7 @@ HRESULT D3D11Func_CreateSurface( D3D11* d3d, D3D11Surface** ppsurface, DDSURFACE
 	return E_INVALIDARG;
 }
 
-HRESULT D3D11func_CreateDefaultSamplers(D3D11* d3d)
+HRESULT D3D11Func_CreateDefaultSamplers(D3D11* d3d)
 {
 	D3D11_SAMPLER_DESC desc;
 	desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -877,6 +909,17 @@ HRESULT D3D11func_CreateDefaultSamplers(D3D11* d3d)
 	if (FAILED(hr)) { DISPDBG_FP(0, "ERROR:  ID3D11Device::CreateSamplerState() returned: " << std::hex << hr); return hr; }
 
 	D3D_SET_OBJECT_NAME_A(d3d->linearSamplerState, "generic_linear_sampler");
+}
+
+HRESULT D3D11Func_CreateDefaultConstantBuffers(D3D11* d3d)
+{
+	(*d3d).switches.switch_reserved = DirectX::XMINT4(0,0,0,0);
+	(*d3d).constants.const_reserved = DirectX::XMFLOAT4(0, 0, 0, 0);
+
+	D3D11Func_CreateConstantBuffer(&d3d, d3d->globalShaderConstants, &(*d3d).constants, sizeof(GlobalShaderConstants));
+	D3D11Func_CreateConstantBuffer(&d3d, d3d->globalShaderSwitches, &(*d3d).switches, sizeof(GlobalShaderSwitches));
+
+	return S_OK;
 }
 
 HRESULT D3D11Func_DeleteSurface( D3D11Surface** ppsurface )
@@ -1092,14 +1135,45 @@ HRESULT D3D11SurfaceFunc_Blt( D3D11* d3d, D3D11Surface* surface,  LPRECT lpDestR
 	/* Do a normal blit */
 	else if( surface->ddsd.ddsCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN )
 	{
-		D3D11SurfaceFunc_BltFast(d3d, surface, lpDestRect, lpSrcRect, DDBLTFAST_NOCOLORKEY);
+		D3D11SurfaceFunc_BltFast(d3d, surface, lpDestRect, lpSrcRect, DDBLTFAST_NOCOLORKEY, nullptr, nullptr); // default to no color key
 	}
 
 	return E_FAIL;
 }
 
-HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* surface, LPRECT lpDestRect, LPRECT lpSrcRect, DWORD dwTrans )
+struct BlitShaderConstants
 {
+	DirectX::XMFLOAT4 sampleParameters; // xy width height in normalized space
+	DirectX::XMFLOAT4 tint;
+	DirectX::XMUINT4  colorKeys;
+};
+
+struct BlitShaderSwitches
+{
+	DirectX::XMINT4   switchesParam1;
+};
+
+HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* surface, LPRECT lpDestRect, LPRECT lpSrcRect, DWORD dwTrans, LPDDCOLORKEY srcColorKey, LPDDCOLORKEY dstColorKey)
+{
+	// handle our color keys
+	unsigned int fSrcCLow = 0x00000000;
+	unsigned int fSrcCHigh = 0xFFFFFFFF;
+	unsigned int fDstCLow = 0x00000000;
+	unsigned int fDstCHigh = 0xFFFFFFFF;
+
+	if (srcColorKey)
+	{
+		fSrcCLow = srcColorKey->dwColorSpaceLowValue;
+		fSrcCHigh = srcColorKey->dwColorSpaceHighValue;
+	}
+	
+	if (dstColorKey)
+	{
+		fDstCLow = dstColorKey->dwColorSpaceLowValue;
+		fDstCHigh = dstColorKey->dwColorSpaceHighValue;
+	}
+
+	// Draw pipeline functions
 	D3DVIEWPORT7 vp;
 	vp.dwX = lpDestRect->left;
 	vp.dwY = lpDestRect->top;
@@ -1129,10 +1203,10 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* surface, LPRECT lpDes
 	float w = float(lpSrcRect->right - lpSrcRect->left) / float(desc.Width);
 	float h = float(lpSrcRect->bottom - lpSrcRect->top) / float(desc.Height);
 
-
+	// todo: fix shader paths
 	D3D11Func_InitPipelineShaders(&d3d, &d3d->defaultBlitPipeline, 
-		L"shaders/Main.vs.hlsl",
-		L"shaders/Main.ps.hlsl", PIPELINE_SHADER_FILE);
+		L"C:\\Projects\\Overcado\\laghaim-front-end\\fakeddraw\\shaders\\Main.vs.hlsl",
+		L"C:\\Projects\\Overcado\\laghaim-front-end\\fakeddraw\\shaders\\Main.ps.hlsl", PIPELINE_SHADER_FILE);
 
 	D3D11Func_CreateVertexShaderInputLayout(&d3d, &d3d->defaultBlitPipeline);
 	D3D11Func_CreateVertexBuffer(&d3d, &d3d->defaultBlitPipeline, vertices, ARRAYSIZE(vertices));
@@ -1141,12 +1215,28 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* surface, LPRECT lpDes
 	D3D11Func_SetVertexShader(d3d, &d3d->defaultBlitPipeline);
 	D3D11Func_SetPixelShader(d3d, &d3d->defaultBlitPipeline);
 
-	ShaderConstants constants;
-	constants.tint = DirectX::XMFLOAT4(1, 1, 1, 1); 
+	// set and update cbuffers
+	d3d->defaultBlitPipeline.constantBuffers[PIPELINE_STAGE_PIXEL][0] = d3d->globalShaderSwitches;
+	d3d->defaultBlitPipeline.constantBuffers[PIPELINE_STAGE_PIXEL][1] = d3d->globalShaderConstants;
+
+	D3D11Func_UpdateConstantBuffer(&d3d, &d3d->defaultBlitPipeline, 0, PIPELINE_STAGE_PIXEL, &(*d3d).switches, sizeof(GlobalShaderSwitches));
+	D3D11Func_UpdateConstantBuffer(&d3d, &d3d->defaultBlitPipeline, 1, PIPELINE_STAGE_PIXEL, &(*d3d).switches, sizeof(GlobalShaderConstants));
+
+	BlitShaderSwitches switches;
+	switches.switchesParam1 = DirectX::XMINT4(dwTrans, 0, 0, 0);
+	D3D11Func_CreateConstantBuffer(&d3d, &d3d->defaultBlitPipeline, 2, PIPELINE_STAGE_PIXEL, &switches, sizeof(BlitShaderSwitches));
+	D3D11Func_UpdateConstantBuffer(&d3d, &d3d->defaultBlitPipeline, 2, PIPELINE_STAGE_PIXEL, &switches, sizeof(BlitShaderSwitches));
+
+	BlitShaderConstants constants;
 	constants.sampleParameters = DirectX::XMFLOAT4(x, y, w, h);
-	D3D11Func_CreateConstantBuffer(&d3d, &d3d->defaultBlitPipeline, 0, PIPELINE_STAGE_PIXEL, &constants, sizeof(ShaderConstants));
-	D3D11Func_UpdateConstantBuffer(&d3d, &d3d->defaultBlitPipeline, 0, PIPELINE_STAGE_PIXEL, &constants, sizeof(ShaderConstants));
-	D3D11Func_BindConstantBuffers(d3d, &d3d->defaultBlitPipeline, PIPELINE_STAGE_PIXEL, 1);
+	constants.tint = DirectX::XMFLOAT4(1, 1, 1, 1);
+	constants.colorKeys = DirectX::XMUINT4(fSrcCLow, fSrcCHigh, fDstCLow, fDstCHigh);
+
+	D3D11Func_CreateConstantBuffer(&d3d, &d3d->defaultBlitPipeline, 3, PIPELINE_STAGE_PIXEL, &constants, sizeof(BlitShaderConstants));
+	D3D11Func_UpdateConstantBuffer(&d3d, &d3d->defaultBlitPipeline, 3, PIPELINE_STAGE_PIXEL, &constants, sizeof(BlitShaderConstants));
+
+	// bind all cbuffers to the shader
+	D3D11Func_BindConstantBuffers(d3d, &d3d->defaultBlitPipeline, PIPELINE_STAGE_PIXEL, 4);
 
 	// set our samplers and then bind
 	d3d->defaultBlitPipeline.samplerStates[PIPELINE_STAGE_PIXEL][0] = d3d->linearSamplerState;

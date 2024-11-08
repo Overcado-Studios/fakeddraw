@@ -26,6 +26,15 @@
 
 NVDebug nvdebug( 0, "fakeddraw_debug.txt" );
 
+enum ColorKeyType
+{
+	COLORKEY_DDCKEY_DESTBLT,
+	COLORKEY_DDCKEY_DESTOVERLAY,
+	COLORKEY_DDCKEY_SRCBLT,
+	COLORKEY_DDCKEY_SRCOVERLAY,
+	COLORKEY_COUNT
+};
+
 struct DDrawPrivate
 {
 	ULONG RefCount;
@@ -39,6 +48,7 @@ struct DDrawSurfacePrivate
 	D3D11Surface* pSurface;
 	D3D11* pParentD3DContext;
 	DDSURFACEDESC2 ddsd;
+	LPDDCOLORKEY		colorKeys[COLORKEY_COUNT];
 };
 
 struct DDrawClipperPrivate
@@ -609,7 +619,21 @@ HRESULT WINAPI IDirectDrawSurfaceFake_BltFast( IDirectDrawSurfaceFake* This, DWO
 	dstRect.bottom = dwY + ddsd.dwHeight;
 
 	D3D11Surface* srcSurface = _ACCESS(DDrawSurfacePrivate, lpDDSrcSurface)->pSurface;
-	return D3D11SurfaceFunc_BltFast(d3d, srcSurface, &dstRect, lpSrcRect, dwTrans);
+	LPDDCOLORKEY srcColorKey = nullptr;
+	LPDDCOLORKEY dstColorKey = nullptr;
+
+	if (dwTrans & DDBLTFAST_SRCCOLORKEY)
+	{
+		srcColorKey = _ACCESS(DDrawSurfacePrivate, lpDDSrcSurface)->colorKeys[COLORKEY_DDCKEY_SRCBLT];
+	}
+
+	if (dwTrans & DDBLTFAST_DESTCOLORKEY)
+	{
+		dstColorKey = ACCESS(DDrawSurfacePrivate)->colorKeys[COLORKEY_DDCKEY_DESTBLT];
+	}
+
+
+	return D3D11SurfaceFunc_BltFast(d3d, srcSurface, &dstRect, lpSrcRect, dwTrans, srcColorKey, dstColorKey);
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::ChangeUniquenessValue()
@@ -756,7 +780,27 @@ HRESULT WINAPI IDirectDrawSurfaceFake::GetColorKey( DWORD dwFlags, LPDDCOLORKEY 
 
 HRESULT WINAPI IDirectDrawSurfaceFake_GetColorKey( IDirectDrawSurfaceFake* This, DWORD dwFlags, LPDDCOLORKEY lpDDColorKey )
 {
-	LOGUNIMPL_F;
+	if (dwFlags & DDCKEY_DESTBLT)
+	{
+		lpDDColorKey = ACCESS(DDrawSurfacePrivate)->colorKeys[COLORKEY_DDCKEY_DESTBLT];
+	}
+
+	if (dwFlags & DDCKEY_DESTOVERLAY)
+	{
+		lpDDColorKey = ACCESS(DDrawSurfacePrivate)->colorKeys[COLORKEY_DDCKEY_DESTOVERLAY];
+	}
+
+	if (dwFlags & DDCKEY_SRCBLT)
+	{
+		lpDDColorKey = ACCESS(DDrawSurfacePrivate)->colorKeys[COLORKEY_DDCKEY_SRCBLT];
+	}
+
+	if (dwFlags & DDCKEY_SRCOVERLAY)
+	{
+		lpDDColorKey = ACCESS(DDrawSurfacePrivate)->colorKeys[COLORKEY_DDCKEY_SRCOVERLAY];
+	}
+
+	return S_OK;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::GetDC( HDC FAR *lphDC  )
@@ -967,7 +1011,27 @@ HRESULT WINAPI IDirectDrawSurfaceFake::SetColorKey( DWORD dwFlags, LPDDCOLORKEY 
 
 HRESULT WINAPI IDirectDrawSurfaceFake_SetColorKey( IDirectDrawSurfaceFake* This, DWORD dwFlags, LPDDCOLORKEY lpDDColorKey )
 {
-	LOGUNIMPL_F;
+	if (dwFlags & DDCKEY_DESTBLT)
+	{
+		ACCESS(DDrawSurfacePrivate)->colorKeys[COLORKEY_DDCKEY_DESTBLT] = lpDDColorKey;
+	}
+
+	if (dwFlags & DDCKEY_DESTOVERLAY)
+	{
+		ACCESS(DDrawSurfacePrivate)->colorKeys[COLORKEY_DDCKEY_DESTOVERLAY] = lpDDColorKey;
+	}
+
+	if (dwFlags & DDCKEY_SRCBLT)
+	{
+		ACCESS(DDrawSurfacePrivate)->colorKeys[COLORKEY_DDCKEY_SRCBLT] = lpDDColorKey;
+	}
+
+	if (dwFlags & DDCKEY_SRCOVERLAY)
+	{
+		ACCESS(DDrawSurfacePrivate)->colorKeys[COLORKEY_DDCKEY_SRCOVERLAY] = lpDDColorKey;
+	}
+
+	return S_OK;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::SetLOD( DWORD dwMaxLOD )

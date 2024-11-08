@@ -65,7 +65,7 @@ BOOL                        g_bActive = FALSE;   // Is application active?
 // Local data
 //-----------------------------------------------------------------------------
 // Name of our bitmap resource.
-static char                 szBitmap[] = "back.bmp";
+static char                 szBitmap[] = "frntback.bmp";
 
 
 
