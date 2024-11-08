@@ -1100,10 +1100,12 @@ HRESULT D3D11SurfaceFunc_GetParentContext( D3D11Surface* surface, D3D11** ppd3d 
 	return S_OK;
 }
 
-HRESULT D3D11SurfaceFunc_Blt( D3D11* d3d, D3D11Surface* surface,  LPRECT lpDestRect, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx )
+HRESULT D3D11SurfaceFunc_Blt( D3D11* d3d, D3D11Surface* srcSurface, D3D11Surface* dstSurface, LPRECT lpDestRect, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx )
 {
+	D3D11Func_SetRenderTarget(d3d, &dstSurface);
+
 	/* For back surfaces */
-	if( surface->ddsd.ddsCaps.dwCaps & DDSCAPS_BACKBUFFER )
+	if(dstSurface->ddsd.ddsCaps.dwCaps & DDSCAPS_BACKBUFFER )
 	{
 		if( !lpDDBltFx )
 			return E_FAIL;
@@ -1112,30 +1114,28 @@ HRESULT D3D11SurfaceFunc_Blt( D3D11* d3d, D3D11Surface* surface,  LPRECT lpDestR
 		{
 			DWORD dwC = lpDDBltFx->dwFillColor;
 
-			float fC[4];
-			fC[0] = float((dwC>>16)&0xFF)/255.0f;
-			fC[1] = float((dwC>>8)&0xFF)/255.0f;
-			fC[2] = float((dwC)&0xFF)/255.0f;
-			fC[3] = float((dwC>>24)&0xFF)/255.0f;
-
 			/* TODO: lpDestRect can be utilized with ID3D11DeviceContext1::ClearView */
 
-			d3d->context->ClearRenderTargetView( surface->rtv, fC );
+			D3D11Func_ClearRT(d3d, dwC);
 
 			return DD_OK;
 		}
+
+		// TODO: verify if works
+		D3D11SurfaceFunc_BltFast(d3d, srcSurface, dstSurface, lpDestRect, lpSrcRect, DDBLTFAST_NOCOLORKEY, nullptr, nullptr); 
+
 	}
 
 	/* Depth buffers are kind of a special case... */
-	else if( surface->ddsd.ddsCaps.dwCaps & DDSCAPS_ZBUFFER )
+	else if(dstSurface->ddsd.ddsCaps.dwCaps & DDSCAPS_ZBUFFER )
 	{
 		return E_FAIL;
 	}
 
 	/* Do a normal blit */
-	else if( surface->ddsd.ddsCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN )
+	else if(dstSurface->ddsd.ddsCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN )
 	{
-		D3D11SurfaceFunc_BltFast(d3d, surface, lpDestRect, lpSrcRect, DDBLTFAST_NOCOLORKEY, nullptr, nullptr); // default to no color key
+		D3D11SurfaceFunc_BltFast(d3d, srcSurface, dstSurface, lpDestRect, lpSrcRect, DDBLTFAST_NOCOLORKEY, nullptr, nullptr); // default to no color key
 	}
 
 	return E_FAIL;
@@ -1153,8 +1153,11 @@ struct BlitShaderSwitches
 	DirectX::XMINT4   switchesParam1;
 };
 
-HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* surface, LPRECT lpDestRect, LPRECT lpSrcRect, DWORD dwTrans, LPDDCOLORKEY srcColorKey, LPDDCOLORKEY dstColorKey)
+HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* srcSurface, D3D11Surface* dstSurface, LPRECT lpDestRect, LPRECT lpSrcRect, DWORD dwTrans, LPDDCOLORKEY srcColorKey, LPDDCOLORKEY dstColorKey)
 {
+	if (!srcSurface || !dstSurface)
+		return E_FAIL;
+
 	// handle our color keys
 	unsigned int fSrcCLow = 0x00000000;
 	unsigned int fSrcCHigh = 0xFFFFFFFF;
@@ -1182,6 +1185,7 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* surface, LPRECT lpDes
 	vp.dvMinZ = 0;
 	vp.dvMaxZ = 1;
 
+	D3D11Func_SetRenderTarget(d3d, &dstSurface);
 	D3D11Func_SetViewport(d3d, &vp);
 	D3D11Func_ClearRT(d3d, 0x000000);
 
@@ -1196,7 +1200,7 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* surface, LPRECT lpDes
 	};
 
 	D3D11_TEXTURE2D_DESC desc;
-	surface->texture->GetDesc(&desc);
+	srcSurface->texture->GetDesc(&desc);
 
 	float x = float(lpSrcRect->left) / float(desc.Width);
 	float y = float(lpSrcRect->top) / float(desc.Height);
@@ -1243,7 +1247,7 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* surface, LPRECT lpDes
 	D3D11Func_BindSamplers(d3d, &d3d->defaultBlitPipeline, PIPELINE_STAGE_PIXEL, 1);
 
 	// set our resources / textures and then bind
-	d3d->defaultBlitPipeline.resourceStates[PIPELINE_STAGE_PIXEL][0] = surface->srv;
+	d3d->defaultBlitPipeline.resourceStates[PIPELINE_STAGE_PIXEL][0] = srcSurface->srv;
 	D3D11Func_BindResources(d3d, &d3d->defaultBlitPipeline, PIPELINE_STAGE_PIXEL, 1);
 
 	// do the drawing

@@ -582,12 +582,16 @@ HRESULT WINAPI IDirectDrawSurfaceFake_Blt( IDirectDrawSurfaceFake* This, LPRECT 
 
 	D3D11* d3d = ACCESS(DDrawSurfacePrivate)->pParentD3DContext;
 
+	D3D11Surface* srcSurface = _ACCESS(DDrawSurfacePrivate, lpDDSrcSurface)->pSurface;
+	D3D11Surface* dstSurface = ACCESS(DDrawSurfacePrivate)->pSurface;
+
 	/* If this is the back buffer being blitted to the front buffer, just call Present and get it over with */
 	if( lpDDSrcSurface )
 		if( SUCCEEDED( D3D11Func_LazyPresent( d3d, _ACCESS(DDrawSurfacePrivate,lpDDSrcSurface)->pSurface, ACCESS(DDrawSurfacePrivate)->pSurface ) ) )
 			return DD_OK;
 
-	return D3D11SurfaceFunc_Blt( ACCESS(DDrawSurfacePrivate)->pParentD3DContext, ACCESS(DDrawSurfacePrivate)->pSurface, lpDestRect, lpSrcRect, dwFlags, lpDDBltFx );
+	// else we run the normal blit
+	return D3D11SurfaceFunc_Blt( ACCESS(DDrawSurfacePrivate)->pParentD3DContext, srcSurface, dstSurface, lpDestRect, lpSrcRect, dwFlags, lpDDBltFx );
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::BltBatch( LPDDBLTBATCH lpDDBltBatch, DWORD dwCount, DWORD dwFlags )
@@ -619,6 +623,8 @@ HRESULT WINAPI IDirectDrawSurfaceFake_BltFast( IDirectDrawSurfaceFake* This, DWO
 	dstRect.bottom = dwY + ddsd.dwHeight;
 
 	D3D11Surface* srcSurface = _ACCESS(DDrawSurfacePrivate, lpDDSrcSurface)->pSurface;
+	D3D11Surface* dstSurface = ACCESS(DDrawSurfacePrivate)->pSurface;
+
 	LPDDCOLORKEY srcColorKey = nullptr;
 	LPDDCOLORKEY dstColorKey = nullptr;
 
@@ -633,7 +639,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake_BltFast( IDirectDrawSurfaceFake* This, DWO
 	}
 
 
-	return D3D11SurfaceFunc_BltFast(d3d, srcSurface, &dstRect, lpSrcRect, dwTrans, srcColorKey, dstColorKey);
+	return D3D11SurfaceFunc_BltFast(d3d, srcSurface, dstSurface, &dstRect, lpSrcRect, dwTrans, srcColorKey, dstColorKey);
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::ChangeUniquenessValue()
