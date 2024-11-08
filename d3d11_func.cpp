@@ -350,7 +350,7 @@ bool D3D11Func_CompileShader(const std::wstring& src,
 	ComPtr<ID3DBlob> tempShaderBlob = nullptr;
 	ComPtr<ID3DBlob> errorBlob = nullptr;
 
-	HRESULT hr;
+	HRESULT hr = S_OK;
 
 	switch (type)
 	{
@@ -364,10 +364,20 @@ bool D3D11Func_CompileShader(const std::wstring& src,
 		break;
 	};
 
-	if (FAILED(hr) || errorBlob)
+	if (FAILED(hr))
+	{
+		DISPDBG_FP(0, "ERROR: D3DCompile() returned" << std::hex << hr);
+	}
+
+	if (errorBlob)
 	{
 		const char* errorMsg = (const char*)errorBlob->GetBufferPointer();
-		DISPDBG_FP(0, "ERROR: D3DCompile() returned" << std::hex << hr << "\n Shader Compilation error message: \n" << errorMsg); return hr;
+		DISPDBG_FP(0, "Shader Compilation error message : \n" << errorMsg);
+	}
+
+	if (FAILED(hr) || errorBlob)
+	{
+		return false;
 	}
 
 	shaderBlob = std::move(tempShaderBlob);
