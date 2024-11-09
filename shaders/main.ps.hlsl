@@ -41,11 +41,12 @@ void PerformColorKey(float4 srcColor, float4 dstColor, uint4 colorKeys, int mode
 {
     if (mode & 1) // src color key
     {
-        if (createARGBdword(srcColor.r * 255, srcColor.g * 255, srcColor.b * 255, srcColor.a * 255 ) < colorKeys.x)
-            discard;
+        // kill pixels  colorKeys.x -> colorKeys.y
+        unsigned int dwordColor = createARGBdword(ceil(srcColor.r * 255), ceil(srcColor.g * 255), ceil(srcColor.b * 255), ceil(srcColor.a * 255));
         
-        if (createARGBdword(srcColor.r * 255, srcColor.g * 255, srcColor.b * 255, srcColor.a * 255) > colorKeys.y)
+        if (dwordColor >= colorKeys.x && dwordColor <= colorKeys.y)
             discard;
+
     }
 }
 
@@ -58,9 +59,9 @@ PSOutput Main(PSInput input)
     uv += sampleParameters.xy; // translate
     
     float4 col = Tex.Sample(TexSampler, uv) * tint;
-    col.a = 1;
 
     PerformColorKey(col, float4(0, 0, 0, 0), srcKeys, COLORKEYMODE);
+    
     output.color = col;
     return output;
 }
