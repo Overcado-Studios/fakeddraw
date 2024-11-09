@@ -37,6 +37,9 @@ HRESULT D3D11Func_ClearDS( D3D11* d3d, DWORD flag, float z, DWORD stencil );
 HRESULT D3D11Func_GetDisplayMode( D3D11* d3d, DDSURFACEDESC2* pddsd );
 HRESULT D3D11Func_SetRenderTarget(D3D11* d3d, D3D11Surface** ppsurface);
 
+HRESULT D3D11SurfaceFunc_Lock(D3D11* d3d, D3D11Surface* surface, LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc, DWORD dwFlags, HANDLE hEvent);
+HRESULT D3D11SurfaceFunc_Unlock(D3D11* d3d, D3D11Surface* surface, LPRECT lpDestRect);
+
 HRESULT D3D11SurfaceFunc_GetDC( D3D11Surface* surface, HDC* pDC );
 HRESULT D3D11SurfaceFunc_ReleaseDC( D3D11Surface* surface, HDC* pDC );
 HRESULT D3D11SurfaceFunc_GetParentContext( D3D11Surface*, D3D11** ppd3d );

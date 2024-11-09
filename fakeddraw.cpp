@@ -619,8 +619,8 @@ HRESULT WINAPI IDirectDrawSurfaceFake_BltFast( IDirectDrawSurfaceFake* This, DWO
 	RECT dstRect;
 	dstRect.left = dwX;
 	dstRect.top = dwY;
-	dstRect.right = dwX + ddsd.dwWidth;
-	dstRect.bottom = dwY + ddsd.dwHeight;
+	dstRect.right = dwX + (lpSrcRect->right - lpSrcRect->left);
+	dstRect.bottom = dwY + (lpSrcRect->bottom - lpSrcRect->top);
 
 	D3D11Surface* srcSurface = _ACCESS(DDrawSurfacePrivate, lpDDSrcSurface)->pSurface;
 	D3D11Surface* dstSurface = ACCESS(DDrawSurfacePrivate)->pSurface;
@@ -955,7 +955,43 @@ HRESULT WINAPI IDirectDrawSurfaceFake::Lock( LPRECT lpDestRect, LPDDSURFACEDESC2
 
 HRESULT WINAPI IDirectDrawSurfaceFake_Lock( IDirectDrawSurfaceFake* This, LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc, DWORD dwFlags, HANDLE hEvent )
 {
-	LOGUNIMPL(S_OK);
+	D3D11* d3d = ACCESS(DDrawSurfacePrivate)->pParentD3DContext;
+	
+	// retrieve surface desc
+	DDSURFACEDESC2 desc = ACCESS(DDrawSurfacePrivate)->ddsd;
+	*lpDDSurfaceDesc = desc;
+
+	// we fill these here since we manage these ourselves
+	LPDDCOLORKEY currColorKey = ACCESS(DDrawSurfacePrivate)->colorKeys[COLORKEY_DDCKEY_DESTBLT];
+	if (currColorKey)
+	{
+		lpDDSurfaceDesc->ddckCKDestBlt = *currColorKey;
+	}
+
+	currColorKey = ACCESS(DDrawSurfacePrivate)->colorKeys[COLORKEY_DDCKEY_DESTOVERLAY];
+	if (currColorKey)
+	{
+		lpDDSurfaceDesc->ddckCKDestOverlay = *currColorKey;
+	}
+
+	currColorKey = ACCESS(DDrawSurfacePrivate)->colorKeys[COLORKEY_DDCKEY_SRCBLT];
+	if (currColorKey)
+	{
+		lpDDSurfaceDesc->ddckCKSrcBlt = *currColorKey;
+	}
+
+	currColorKey = ACCESS(DDrawSurfacePrivate)->colorKeys[COLORKEY_DDCKEY_SRCOVERLAY];
+	if (currColorKey)
+	{
+		lpDDSurfaceDesc->ddckCKSrcOverlay = *currColorKey;
+	}
+
+	// assuming argb8888
+	lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount = 32;
+	lpDDSurfaceDesc->ddpfPixelFormat.dwFlags = 32;
+
+	// retrieve pixel information
+	return D3D11SurfaceFunc_Lock(d3d, ACCESS(DDrawSurfacePrivate)->pSurface, lpDestRect, lpDDSurfaceDesc, dwFlags, hEvent);
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::PageLock( DWORD dwFlags )
@@ -1107,7 +1143,10 @@ HRESULT WINAPI IDirectDrawSurfaceFake::Unlock( LPRECT lpRect )
 
 HRESULT WINAPI IDirectDrawSurfaceFake_Unlock( IDirectDrawSurfaceFake* This, LPRECT lpRect )
 {
-	LOGUNIMPL(DD_OK);
+	D3D11* d3d = ACCESS(DDrawSurfacePrivate)->pParentD3DContext;
+	D3D11Surface* thisSurface = ACCESS(DDrawSurfacePrivate)->pSurface;
+
+	return D3D11SurfaceFunc_Unlock(d3d, thisSurface, lpRect);
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::UpdateOverlay( LPRECT lpSrcRect, IDirectDrawSurfaceFake* lpDDDestSurface, LPRECT lpDestRect, DWORD dwFlags, LPDDOVERLAYFX lpDDOverlayFx )

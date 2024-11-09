@@ -1083,6 +1083,126 @@ HRESULT D3D11Func_SetRenderTarget(D3D11* d3d, D3D11Surface** ppsurface)
 /***********************************************************\
  *            Direct3D11 Surface functionality             *
 \***********************************************************/
+
+// locked texture data
+struct CLockedTextureData
+{
+	D3D11_BOX lock_srcrect;
+	ID3D11Texture2D* lock_stagingTex = nullptr;
+	D3D11_MAPPED_SUBRESOURCE lockRectResource;
+	UINT lock_subresource;
+};
+
+static CLockedTextureData s_LockData;
+
+
+
+HRESULT D3D11SurfaceFunc_Lock(D3D11* d3d, D3D11Surface* surface, LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc, DWORD dwFlags, HANDLE hEvent)
+{
+	ID3D11Resource* pTexture = surface->texture;
+
+	if (!pTexture)
+		return E_FAIL;
+
+	D3D11_TEXTURE2D_DESC desc;
+	{
+		ID3D11Texture2D* pD3DTexture = static_cast<ID3D11Texture2D*>(pTexture);
+		pD3DTexture->GetDesc(&desc);
+	}
+
+	s_LockData.lock_subresource = D3D11CalcSubresource(0, 0, desc.MipLevels);
+
+	D3D11_TEXTURE2D_DESC stagingTextureDesc;
+	stagingTextureDesc.Width = desc.Width;
+	stagingTextureDesc.Height = desc.Height;
+	stagingTextureDesc.MipLevels = desc.MipLevels;
+	stagingTextureDesc.ArraySize = desc.ArraySize;
+	stagingTextureDesc.Format = desc.Format;
+	stagingTextureDesc.SampleDesc.Count = desc.SampleDesc.Count;
+	stagingTextureDesc.SampleDesc.Quality = desc.SampleDesc.Quality;
+	stagingTextureDesc.Usage = D3D11_USAGE_STAGING;
+	stagingTextureDesc.BindFlags = 0;
+	stagingTextureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE;
+	stagingTextureDesc.MiscFlags = 0;
+
+	// create our staging texture
+	ID3D11Texture2D* stagingTexture;
+	HRESULT hr = d3d->device->CreateTexture2D(&stagingTextureDesc, nullptr, &stagingTexture);
+	if (FAILED(hr)) { DISPDBG_FP(0, "ERROR:  ID3D11Device::CreateTexture2D() (Staging) returned: " << std::hex << hr); return hr; }
+
+	// generate the rect for the subsection of the texture we're gonna lock
+	if (lpDestRect)
+	{
+		s_LockData.lock_srcrect.left = lpDestRect->left;
+		s_LockData.lock_srcrect.right = lpDestRect->right;
+		s_LockData.lock_srcrect.top = lpDestRect->top;
+		s_LockData.lock_srcrect.bottom = lpDestRect->bottom;
+		s_LockData.lock_srcrect.front = 0;
+		s_LockData.lock_srcrect.back = 1;
+	}
+	else // otherwise, lock whole texture
+	{
+		s_LockData.lock_srcrect.left = 0;
+		s_LockData.lock_srcrect.right = desc.Width;
+		s_LockData.lock_srcrect.top = 0;
+		s_LockData.lock_srcrect.bottom = desc.Height;
+		s_LockData.lock_srcrect.front = 0;
+		s_LockData.lock_srcrect.back = 1;
+	}
+
+	// Download 
+	d3d->context->CopySubresourceRegion(stagingTexture, 0, 0, 0, 0, pTexture, s_LockData.lock_subresource, &s_LockData.lock_srcrect);
+
+	// Map
+	D3D11_MAPPED_SUBRESOURCE mapped;
+	hr = d3d->context->Map(stagingTexture, 0, D3D11_MAP_READ_WRITE, 0, &mapped);
+	if (FAILED(hr)) { DISPDBG_FP(0, "ERROR:  ID3D11DeviceContext::Map() (Staging) returned: " << std::hex << hr); stagingTexture->Release(); return hr; }
+
+	s_LockData.lock_stagingTex = stagingTexture;
+	s_LockData.lockRectResource = mapped;
+
+	if (dwFlags & DDLOCK_READONLY)
+	{
+		s_LockData.lockRectResource.pData = nullptr;
+	}
+
+	void* pPixels = mapped.pData;
+	lpDDSurfaceDesc->lpSurface = (unsigned char*)pPixels;
+	lpDDSurfaceDesc->lPitch = s_LockData.lockRectResource.RowPitch;
+
+	return S_OK;
+}
+
+HRESULT D3D11SurfaceFunc_Unlock(D3D11* d3d, D3D11Surface* surface, LPRECT lpDestRect)
+{
+	ID3D11Resource* pTexture = surface->texture;
+
+	if (!pTexture)
+		return E_FAIL;
+
+	d3d->context->Unmap(s_LockData.lock_stagingTex, 0);
+
+	if (s_LockData.lockRectResource.pData)
+	{
+		int x, y, z;
+		x = y = z = 0;
+
+		if (lpDestRect)
+		{
+			x = lpDestRect->left;
+			y = lpDestRect->top;
+		}
+
+		// commit changes to the actual texture
+		d3d->context->CopySubresourceRegion(pTexture, s_LockData.lock_subresource, x, y, z, s_LockData.lock_stagingTex, 0, nullptr);
+	}
+
+	s_LockData.lock_stagingTex->Release();
+	s_LockData.lock_stagingTex = nullptr;
+
+	return S_OK;
+}
+
 HRESULT D3D11SurfaceFunc_GetDC( D3D11Surface* surface, HDC* pDC )
 {
 	return surface->surface->GetDC(FALSE, pDC);
@@ -1187,7 +1307,6 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* srcSurface, D3D11Surf
 
 	D3D11Func_SetRenderTarget(d3d, &dstSurface);
 	D3D11Func_SetViewport(d3d, &vp);
-	D3D11Func_ClearRT(d3d, 0x000000);
 
 	// default vertex coords for a fullscreen quad
 	VertexProperties vertices[] = {
