@@ -42,13 +42,27 @@ struct DDrawPrivate
 	D3D11* pD3DContext;
 };
 
+struct DDrawPalettePrivate
+{
+	ULONG RefCount;
+	DWORD dwFlags;
+
+	LPPALETTEENTRY	peEntries;
+
+	D3D11* pParentD3DContext;
+	D3D11Palette* pPalette;
+};
+
 struct DDrawSurfacePrivate
 {
 	ULONG RefCount;
 	D3D11Surface* pSurface;
 	D3D11* pParentD3DContext;
 	DDSURFACEDESC2 ddsd;
-	LPDDCOLORKEY		colorKeys[COLORKEY_COUNT];
+	DDCOLORKEY		colorKeys[COLORKEY_COUNT];
+
+	DDrawPalettePrivate* pSurfPalette;
+	DDrawSurfacePrivate* pAttachedSurface = nullptr;
 };
 
 struct DDrawClipperPrivate
@@ -58,14 +72,7 @@ struct DDrawClipperPrivate
 	HWND hWnd;
 };
 
-struct DDrawPalettePrivate
-{
-	ULONG RefCount;
-	DWORD dwFlags;
 
-	LPPALETTEENTRY	peEntries;
-	VOID*			pData;
-};
 
 HRESULT WINAPI DirectDrawFakeCreate( GUID FAR *lpGUID, IDirectDrawFake FAR **lplpDD, IUnknownFake FAR *pUnkOuter );
 HRESULT WINAPI DirectDrawFakeCreateEx( GUID FAR * lpGuid, LPVOID  *lplpDD, REFIID  iid,IUnknownFake FAR *pUnkOuter );
@@ -102,11 +109,10 @@ VOID PVT_IDirectDrawClipperFake_Uninitialize( IDirectDrawClipperFake** This )
 
 VOID PVT_IDirectDrawPaletteFake_Uninitialize( IDirectDrawPaletteFake** This )
 {
-	if( _ACCESS( DDrawPalettePrivate, (*This) )->pData )
-		free( _ACCESS( DDrawPalettePrivate, (*This) )->pData );
+	D3D11PaletteFunc_DeletePalette(&_ACCESS(DDrawPalettePrivate, (*This))->pPalette);
 
-	if( _ACCESS( DDrawPalettePrivate, (*This) )->peEntries )
-		free( _ACCESS( DDrawPalettePrivate, (*This) )->peEntries );
+	if (_ACCESS(DDrawPalettePrivate, (*This))->pPalette)
+		free(_ACCESS(DDrawPalettePrivate, (*This))->pPalette);
 
 	delete _ACCESS( DDrawPalettePrivate, (*This) );
 
@@ -209,10 +215,11 @@ HRESULT WINAPI IDirectDrawFake_CreatePalette( IDirectDrawFake* This, DWORD dwFla
 
 	memset((*lplpDDPalette)->reserved, 0, sizeof(DDrawPalettePrivate));
 
-	//HRESULT hr = D3D11PaletteFunc_CreatePalette(ACCESS(DDrawPrivate)->pD3DContext, lpDDColorArray, lpDDPal);
-	//if (FAILED(hr))
-	//	return hr;
+	HRESULT hr = D3D11PaletteFunc_CreatePalette(ACCESS(DDrawPrivate)->pD3DContext, &_ACCESS(DDrawPalettePrivate, (*lplpDDPalette))->pPalette, lpDDColorArray, dwFlags);
+	if (FAILED(hr))
+		return hr;
 
+	_ACCESS(DDrawPalettePrivate, (*lplpDDPalette))->pParentD3DContext = ACCESS(DDrawPrivate)->pD3DContext;
 	_ACCESS(DDrawPalettePrivate, (*lplpDDPalette))->dwFlags = dwFlags;
 	_ACCESS(DDrawPalettePrivate, (*lplpDDPalette))->peEntries = lpDDColorArray;
 	_ACCESS(DDrawPalettePrivate, (*lplpDDPalette))->RefCount = 1;
@@ -611,10 +618,22 @@ HRESULT WINAPI IDirectDrawSurfaceFake::BltFast( DWORD dwX,DWORD dwY, IDirectDraw
 
 HRESULT WINAPI IDirectDrawSurfaceFake_BltFast( IDirectDrawSurfaceFake* This, DWORD dwX,DWORD dwY, IDirectDrawSurfaceFake* lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans )
 {
-	D3D11* d3d = ACCESS(DDrawSurfacePrivate)->pParentD3DContext;
-	D3D11Func_SetRenderTarget(d3d, &ACCESS(DDrawSurfacePrivate)->pSurface);
+	DDrawSurfacePrivate* dstSurf = ACCESS(DDrawSurfacePrivate);
+	DDrawSurfacePrivate* srcSurf = _ACCESS(DDrawSurfacePrivate, lpDDSrcSurface);
 
-	DDSURFACEDESC2 ddsd = _ACCESS(DDrawSurfacePrivate, lpDDSrcSurface)->ddsd;
+	if (ACCESS(DDrawSurfacePrivate)->pAttachedSurface)
+	{
+		// if we have an attached surface to this surface, it might be the front buffer. 
+		// since we cant access the front buffer easily on D3D11, we need to set the state to the back
+		// buffer instead.
+
+		dstSurf = ACCESS(DDrawSurfacePrivate)->pAttachedSurface;
+	}
+
+	D3D11* d3d = dstSurf->pParentD3DContext;
+	D3D11Func_SetRenderTarget(d3d, &dstSurf->pSurface);
+
+	DDSURFACEDESC2 ddsd = srcSurf->ddsd;
 
 	RECT dstRect;
 	dstRect.left = dwX;
@@ -622,22 +641,21 @@ HRESULT WINAPI IDirectDrawSurfaceFake_BltFast( IDirectDrawSurfaceFake* This, DWO
 	dstRect.right = dwX + (lpSrcRect->right - lpSrcRect->left);
 	dstRect.bottom = dwY + (lpSrcRect->bottom - lpSrcRect->top);
 
-	D3D11Surface* srcSurface = _ACCESS(DDrawSurfacePrivate, lpDDSrcSurface)->pSurface;
-	D3D11Surface* dstSurface = ACCESS(DDrawSurfacePrivate)->pSurface;
+	D3D11Surface* srcSurface = srcSurf->pSurface;
+	D3D11Surface* dstSurface = dstSurf->pSurface;
 
 	LPDDCOLORKEY srcColorKey = nullptr;
 	LPDDCOLORKEY dstColorKey = nullptr;
 
 	if (dwTrans & DDBLTFAST_SRCCOLORKEY)
 	{
-		srcColorKey = _ACCESS(DDrawSurfacePrivate, lpDDSrcSurface)->colorKeys[COLORKEY_DDCKEY_SRCBLT];
+		srcColorKey = &srcSurf->colorKeys[COLORKEY_DDCKEY_SRCBLT];
 	}
 
 	if (dwTrans & DDBLTFAST_DESTCOLORKEY)
 	{
-		dstColorKey = ACCESS(DDrawSurfacePrivate)->colorKeys[COLORKEY_DDCKEY_DESTBLT];
+		dstColorKey = &dstSurf->colorKeys[COLORKEY_DDCKEY_DESTBLT];
 	}
-
 
 	return D3D11SurfaceFunc_BltFast(d3d, srcSurface, dstSurface, &dstRect, lpSrcRect, dwTrans, srcColorKey, dstColorKey);
 }
@@ -746,6 +764,11 @@ HRESULT WINAPI IDirectDrawSurfaceFake_GetAttachedSurface( IDirectDrawSurfaceFake
 	_ACCESS(DDrawSurfacePrivate, (*lplpDDAttachedSurface))->RefCount = 1;
 	_ACCESS(DDrawSurfacePrivate, (*lplpDDAttachedSurface))->ddsd = ddsd;
 
+	// attach the created surface to this surface to reference state stuff. 
+	// ex. if attached surface is the backbuffer we need to apply to that palette changes to the
+	// front buffer since we cannot access front buffer on D3D11 easily.
+	ACCESS(DDrawSurfacePrivate)->pAttachedSurface = _ACCESS(DDrawSurfacePrivate, (*lplpDDAttachedSurface));
+
 	return DD_OK;
 }
 
@@ -786,24 +809,35 @@ HRESULT WINAPI IDirectDrawSurfaceFake::GetColorKey( DWORD dwFlags, LPDDCOLORKEY 
 
 HRESULT WINAPI IDirectDrawSurfaceFake_GetColorKey( IDirectDrawSurfaceFake* This, DWORD dwFlags, LPDDCOLORKEY lpDDColorKey )
 {
+	DDrawSurfacePrivate* surf = ACCESS(DDrawSurfacePrivate);
+
+	if (ACCESS(DDrawSurfacePrivate)->pAttachedSurface)
+	{
+		// if we have an attached surface to this surface, it might be the front buffer. 
+		// since we cant access the front buffer easily on D3D11, we need to set the state to the back
+		// buffer instead.
+
+		surf = ACCESS(DDrawSurfacePrivate)->pAttachedSurface;
+	}
+
 	if (dwFlags & DDCKEY_DESTBLT)
 	{
-		lpDDColorKey = ACCESS(DDrawSurfacePrivate)->colorKeys[COLORKEY_DDCKEY_DESTBLT];
+		lpDDColorKey = &surf->colorKeys[COLORKEY_DDCKEY_DESTBLT];
 	}
 
 	if (dwFlags & DDCKEY_DESTOVERLAY)
 	{
-		lpDDColorKey = ACCESS(DDrawSurfacePrivate)->colorKeys[COLORKEY_DDCKEY_DESTOVERLAY];
+		lpDDColorKey = &surf->colorKeys[COLORKEY_DDCKEY_DESTOVERLAY];
 	}
 
 	if (dwFlags & DDCKEY_SRCBLT)
 	{
-		lpDDColorKey = ACCESS(DDrawSurfacePrivate)->colorKeys[COLORKEY_DDCKEY_SRCBLT];
+		lpDDColorKey = &surf->colorKeys[COLORKEY_DDCKEY_SRCBLT];
 	}
 
 	if (dwFlags & DDCKEY_SRCOVERLAY)
 	{
-		lpDDColorKey = ACCESS(DDrawSurfacePrivate)->colorKeys[COLORKEY_DDCKEY_SRCOVERLAY];
+		lpDDColorKey = &surf->colorKeys[COLORKEY_DDCKEY_SRCOVERLAY];
 	}
 
 	return S_OK;
@@ -867,7 +901,24 @@ HRESULT WINAPI IDirectDrawSurfaceFake::GetPalette( IDirectDrawPaletteFake* FAR *
 
 HRESULT WINAPI IDirectDrawSurfaceFake_GetPalette( IDirectDrawSurfaceFake* This, IDirectDrawPaletteFake* FAR *lplpDDPalette )
 {
-	LOGUNIMPL_F;
+	DDrawSurfacePrivate* surf = ACCESS(DDrawSurfacePrivate);
+
+	if (ACCESS(DDrawSurfacePrivate)->pAttachedSurface)
+	{
+		// if we have an attached surface to this surface, it might be the front buffer. 
+		// since we cant access the front buffer easily on D3D11, we need to set the state to the back
+		// buffer instead.
+
+		surf = ACCESS(DDrawSurfacePrivate)->pAttachedSurface;
+	}
+
+	D3D11* d3d = surf->pParentD3DContext;
+
+	// set this surface's palette to the parameter
+	
+
+	//_ACCESS(DDrawPalettePrivate, (*lplpDDPalette)) = ACCESS(DDrawSurfacePrivate)->pSurfPalette;
+	return S_OK;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::GetPixelFormat( LPDDPIXELFORMAT lpDDPixelFormat  )
@@ -955,32 +1006,43 @@ HRESULT WINAPI IDirectDrawSurfaceFake::Lock( LPRECT lpDestRect, LPDDSURFACEDESC2
 
 HRESULT WINAPI IDirectDrawSurfaceFake_Lock( IDirectDrawSurfaceFake* This, LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc, DWORD dwFlags, HANDLE hEvent )
 {
-	D3D11* d3d = ACCESS(DDrawSurfacePrivate)->pParentD3DContext;
+	DDrawSurfacePrivate* surf = ACCESS(DDrawSurfacePrivate);
+
+	if (ACCESS(DDrawSurfacePrivate)->pAttachedSurface)
+	{
+		// if we have an attached surface to this surface, it might be the front buffer. 
+		// since we cant access the front buffer easily on D3D11, we need to set the state to the back
+		// buffer instead.
+
+		surf = ACCESS(DDrawSurfacePrivate)->pAttachedSurface;
+	}
+
+	D3D11* d3d = surf->pParentD3DContext;
 	
 	// retrieve surface desc
-	DDSURFACEDESC2 desc = ACCESS(DDrawSurfacePrivate)->ddsd;
+	DDSURFACEDESC2 desc = surf->ddsd;
 	*lpDDSurfaceDesc = desc;
 
 	// we fill these here since we manage these ourselves
-	LPDDCOLORKEY currColorKey = ACCESS(DDrawSurfacePrivate)->colorKeys[COLORKEY_DDCKEY_DESTBLT];
+	LPDDCOLORKEY currColorKey = &surf->colorKeys[COLORKEY_DDCKEY_DESTBLT];
 	if (currColorKey)
 	{
 		lpDDSurfaceDesc->ddckCKDestBlt = *currColorKey;
 	}
 
-	currColorKey = ACCESS(DDrawSurfacePrivate)->colorKeys[COLORKEY_DDCKEY_DESTOVERLAY];
+	currColorKey = &surf->colorKeys[COLORKEY_DDCKEY_DESTOVERLAY];
 	if (currColorKey)
 	{
 		lpDDSurfaceDesc->ddckCKDestOverlay = *currColorKey;
 	}
 
-	currColorKey = ACCESS(DDrawSurfacePrivate)->colorKeys[COLORKEY_DDCKEY_SRCBLT];
+	currColorKey = &surf->colorKeys[COLORKEY_DDCKEY_SRCBLT];
 	if (currColorKey)
 	{
 		lpDDSurfaceDesc->ddckCKSrcBlt = *currColorKey;
 	}
 
-	currColorKey = ACCESS(DDrawSurfacePrivate)->colorKeys[COLORKEY_DDCKEY_SRCOVERLAY];
+	currColorKey = &surf->colorKeys[COLORKEY_DDCKEY_SRCOVERLAY];
 	if (currColorKey)
 	{
 		lpDDSurfaceDesc->ddckCKSrcOverlay = *currColorKey;
@@ -991,7 +1053,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake_Lock( IDirectDrawSurfaceFake* This, LPRECT
 	lpDDSurfaceDesc->ddpfPixelFormat.dwFlags = 32;
 
 	// retrieve pixel information
-	return D3D11SurfaceFunc_Lock(d3d, ACCESS(DDrawSurfacePrivate)->pSurface, lpDestRect, lpDDSurfaceDesc, dwFlags, hEvent);
+	return D3D11SurfaceFunc_Lock(d3d, surf->pSurface, lpDestRect, lpDDSurfaceDesc, dwFlags, hEvent);
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::PageLock( DWORD dwFlags )
@@ -1053,24 +1115,35 @@ HRESULT WINAPI IDirectDrawSurfaceFake::SetColorKey( DWORD dwFlags, LPDDCOLORKEY 
 
 HRESULT WINAPI IDirectDrawSurfaceFake_SetColorKey( IDirectDrawSurfaceFake* This, DWORD dwFlags, LPDDCOLORKEY lpDDColorKey )
 {
+	DDrawSurfacePrivate* surf = ACCESS(DDrawSurfacePrivate);
+
+	if (ACCESS(DDrawSurfacePrivate)->pAttachedSurface)
+	{
+		// if we have an attached surface to this surface, it might be the front buffer. 
+		// since we cant access the front buffer easily on D3D11, we need to set the state to the back
+		// buffer instead.
+
+		surf = ACCESS(DDrawSurfacePrivate)->pAttachedSurface;
+	}
+
 	if (dwFlags & DDCKEY_DESTBLT)
 	{
-		ACCESS(DDrawSurfacePrivate)->colorKeys[COLORKEY_DDCKEY_DESTBLT] = lpDDColorKey;
+		surf->colorKeys[COLORKEY_DDCKEY_DESTBLT] = *lpDDColorKey;
 	}
 
 	if (dwFlags & DDCKEY_DESTOVERLAY)
 	{
-		ACCESS(DDrawSurfacePrivate)->colorKeys[COLORKEY_DDCKEY_DESTOVERLAY] = lpDDColorKey;
+		surf->colorKeys[COLORKEY_DDCKEY_DESTOVERLAY] = *lpDDColorKey;
 	}
 
 	if (dwFlags & DDCKEY_SRCBLT)
 	{
-		ACCESS(DDrawSurfacePrivate)->colorKeys[COLORKEY_DDCKEY_SRCBLT] = lpDDColorKey;
+		surf->colorKeys[COLORKEY_DDCKEY_SRCBLT] = *lpDDColorKey;
 	}
 
 	if (dwFlags & DDCKEY_SRCOVERLAY)
 	{
-		ACCESS(DDrawSurfacePrivate)->colorKeys[COLORKEY_DDCKEY_SRCOVERLAY] = lpDDColorKey;
+		surf->colorKeys[COLORKEY_DDCKEY_SRCOVERLAY] = *lpDDColorKey;
 	}
 
 	return S_OK;
@@ -1102,8 +1175,29 @@ HRESULT WINAPI IDirectDrawSurfaceFake::SetPalette( IDirectDrawPaletteFake* lpDDP
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake_SetPalette( IDirectDrawSurfaceFake* This, IDirectDrawPaletteFake* lpDDPalette )
-{
-	LOGUNIMPL_F;
+{	
+	DDrawSurfacePrivate* surf = ACCESS(DDrawSurfacePrivate);
+
+	if (ACCESS(DDrawSurfacePrivate)->pAttachedSurface)
+	{
+		// if we have an attached surface to this surface, it might be the front buffer. 
+		// since we cant access the front buffer easily on D3D11, we need to set the state to the back
+		// buffer instead.
+
+		surf = ACCESS(DDrawSurfacePrivate)->pAttachedSurface;
+	}
+
+	// get this surface's palette
+	D3D11* d3d = surf->pParentD3DContext;
+	D3D11Surface* thisSurface = surf->pSurface;
+
+	// set this surface's palette to the parameter
+	surf->pSurfPalette = _ACCESS(DDrawPalettePrivate, lpDDPalette);
+	DDrawPalettePrivate* thisPal = surf->pSurfPalette;
+
+	// then set d3d11
+	D3D11Palette* pal = thisPal->pPalette;
+	return D3D11SurfaceFunc_SetPalette(d3d, &thisSurface, thisPal->pPalette);
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::SetPriority( DWORD dwPriority )
@@ -1298,7 +1392,7 @@ ULONG WINAPI IDirectDrawPaletteFake_AddRef( IDirectDrawPaletteFake* This )
 {
 	GUARD( This, 0 );
 	_INCREF( DDrawClipperPrivate );
-	_RETREF( DDrawClipperPrivate );;
+	_RETREF( DDrawClipperPrivate );
 }
 
 ULONG WINAPI IDirectDrawPaletteFake::Release()
@@ -1345,7 +1439,9 @@ HRESULT WINAPI IDirectDrawPaletteFake::GetEntries( DWORD dwFlags, DWORD dwBase, 
 
 HRESULT WINAPI IDirectDrawPaletteFake_GetEntries( IDirectDrawPaletteFake* This, DWORD dwFlags, DWORD dwBase, DWORD dwNumEntries, LPPALETTEENTRY lpEntries )
 {
-	LOGUNIMPL_F;
+	D3D11Palette* pal = ACCESS(DDrawPalettePrivate)->pPalette;
+
+	return S_OK;
 }
 
 HRESULT WINAPI IDirectDrawPaletteFake::Initialize( IDirectDrawFake* lpDD, DWORD dwFlags, LPPALETTEENTRY lpDDColorTable )
@@ -1355,7 +1451,16 @@ HRESULT WINAPI IDirectDrawPaletteFake::Initialize( IDirectDrawFake* lpDD, DWORD 
 
 HRESULT WINAPI IDirectDrawPaletteFake_Initialize(  IDirectDrawPaletteFake* This, IDirectDrawFake* lpDD, DWORD dwFlags, LPPALETTEENTRY lpDDColorTable )
 {
-	LOGUNIMPL_F;
+	D3D11Palette* pal = ACCESS(DDrawPalettePrivate)->pPalette;
+	D3D11* d3d = ACCESS(DDrawPalettePrivate)->pParentD3DContext;
+
+	HRESULT hr = D3D11PaletteFunc_Initialize(d3d, pal, lpDDColorTable, dwFlags);
+
+	if (FAILED(hr)) { return hr; };
+
+	ACCESS(DDrawPalettePrivate)->dwFlags = dwFlags;
+	ACCESS(DDrawPalettePrivate)->peEntries = lpDDColorTable;
+
 }
 
 HRESULT WINAPI IDirectDrawPaletteFake::SetEntries( DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries )
@@ -1365,13 +1470,11 @@ HRESULT WINAPI IDirectDrawPaletteFake::SetEntries( DWORD dwFlags, DWORD dwStarti
 
 HRESULT WINAPI IDirectDrawPaletteFake_SetEntries( IDirectDrawPaletteFake* This, DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries )
 {
-	LOGUNIMPL_F;
+	D3D11Palette* pal = ACCESS(DDrawPalettePrivate)->pPalette;
+	D3D11* d3d = ACCESS(DDrawPalettePrivate)->pParentD3DContext;
+
+	return D3D11PaletteFunc_UpdatePalette(d3d, pal, dwFlags, dwStartingEntry, dwCount, lpEntries);
 }
-
-
-
-
-
 
 HRESULT WINAPI DirectDrawFakeCreate( GUID FAR *lpGUID, IDirectDrawFake FAR **lplpDD, IUnknownFake FAR *pUnkOuter )
 {

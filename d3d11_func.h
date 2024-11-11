@@ -10,7 +10,7 @@ using ComPtr = Microsoft::WRL::ComPtr<T>;
 typedef struct D3D11 D3D11;
 typedef struct D3D11Surface D3D11Surface;
 typedef struct D3D11VertexBuffer D3D11VertexBuffer;
-
+typedef struct D3D11Palette D3D11Palette;
 
 HRESULT D3D11Func_Initialize( D3D11** ppd3d );
 void D3D11Func_Uninitialize( D3D11** ppd3d );
@@ -45,3 +45,9 @@ HRESULT D3D11SurfaceFunc_ReleaseDC( D3D11Surface* surface, HDC* pDC );
 HRESULT D3D11SurfaceFunc_GetParentContext( D3D11Surface*, D3D11** ppd3d );
 HRESULT D3D11SurfaceFunc_Blt( D3D11* d3d, D3D11Surface* srcSurface, D3D11Surface* dstSurface, LPRECT lpDestRect, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx );
 HRESULT D3D11SurfaceFunc_BltFast( D3D11* d3d, D3D11Surface* srcSurface, D3D11Surface* dstSurface, LPRECT lpDestRect, LPRECT lpSrcRect, DWORD dwTrans, LPDDCOLORKEY srcColorKey, LPDDCOLORKEY dstColorKey);
+HRESULT D3D11SurfaceFunc_SetPalette( D3D11* d3d, D3D11Surface** surf, D3D11Palette* pal);
+
+HRESULT D3D11PaletteFunc_Initialize(D3D11* d3d, D3D11Palette* pal, LPPALETTEENTRY lpDDColorArray, DWORD dwFlags);
+HRESULT D3D11PaletteFunc_CreatePalette(D3D11* d3d, D3D11Palette** pal, LPPALETTEENTRY lpDDColorArray, DWORD dwFlags);
+HRESULT D3D11PaletteFunc_DeletePalette(D3D11Palette** pal);
+HRESULT D3D11PaletteFunc_UpdatePalette(D3D11* ppd3d, D3D11Palette* pal, DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries);

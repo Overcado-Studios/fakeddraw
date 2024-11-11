@@ -11,6 +11,7 @@ struct D3D11Pipeline;
 enum PipelineStage;
 struct VertexProperties;
 struct D3D11Surface;
+struct D3D11Palette;
 
 typedef struct _D3DVIEWPORT7 {
     DWORD       dwX;
@@ -34,7 +35,8 @@ enum
 {
 	SAMPLER_STATE_COUNT = D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT,
 	RESOURCE_STATE_COUNT = D3D11_COMMONSHADER_INPUT_RESOURCE_REGISTER_COUNT,
-	CONSTANT_BUFFER_COUNT = D3D11_COMMONSHADER_CONSTANT_BUFFER_HW_SLOT_COUNT
+	CONSTANT_BUFFER_COUNT = D3D11_COMMONSHADER_CONSTANT_BUFFER_HW_SLOT_COUNT,
+	MAX_PALETTE_ENTRY_COUNT = 256
 };
 
 enum PipelineStage
@@ -54,13 +56,34 @@ struct VertexProperties
 
 struct D3D11Surface
 {
-	ID3D11Texture2D* texture;
+	ID3D11Texture2D*	texture;
 	IDXGISurface1* surface;
 	ID3D11RenderTargetView* rtv;
 	ID3D11ShaderResourceView* srv;
 	D3D11* parent_context;
 	DWORD						flags;
 	DDSURFACEDESC2				ddsd;
+	D3D11Palette* palette;
+};
+
+struct PaletteState
+{
+	DirectX::XMFLOAT4 paletteEntries[MAX_PALETTE_ENTRY_COUNT];
+};
+
+struct D3D11Palette
+{
+	D3D11*						parent_context;
+	PaletteState				palette;
+	ComPtr<ID3D11Buffer>		paletteLUT;
+};
+
+struct D3D11StructuredBuffer
+{
+	ComPtr<ID3D11UnorderedAccessView>	uav;
+	ComPtr<ID3D11ShaderResourceView>	srv;
+	ComPtr<ID3D11Buffer>				buffer;
+	bool								isUnorderedAccess;
 };
 
 enum PipelineShaderType
@@ -68,6 +91,16 @@ enum PipelineShaderType
 	PIPELINE_SHADER_FILE,		// shader came from vs.hlsl / ps.hlsl
 	PIPELINE_SHADER_SRC,		// shader came from an ascii string
 	PIPELINE_SHADER_BLOB		// shader precompiled
+};
+
+struct GlobalShaderSwitches
+{
+	DirectX::XMINT4 switches_1;
+};
+
+struct GlobalShaderConstants
+{
+	DirectX::XMFLOAT4 const_reserved;
 };
 
 struct D3D11Pipeline
@@ -83,17 +116,7 @@ struct D3D11Pipeline
 
 	ComPtr<ID3D11SamplerState>				samplerStates[PIPELINE_STAGE_COUNT][SAMPLER_STATE_COUNT];
 	ComPtr<ID3D11ShaderResourceView>		resourceStates[PIPELINE_STAGE_COUNT][RESOURCE_STATE_COUNT];		// make this abit better to handle non-texture resources?
-	ComPtr<ID3D11Buffer>					constantBuffers[PIPELINE_STAGE_COUNT][RESOURCE_STATE_COUNT];	
-};
-
-struct GlobalShaderSwitches
-{
-	DirectX::XMINT4 switch_reserved;
-};
-
-struct GlobalShaderConstants
-{
-	DirectX::XMFLOAT4 const_reserved; 
+	ComPtr<ID3D11Buffer>					constantBuffers[PIPELINE_STAGE_COUNT][RESOURCE_STATE_COUNT];
 };
 
 
@@ -112,22 +135,27 @@ struct D3D11
 
 	// Default Samplers
 	ComPtr<ID3D11SamplerState> linearSamplerState;
+	ComPtr<ID3D11SamplerState> pointSamplerState;
 
 	ComPtr<ID3D11Buffer>		globalShaderSwitches;
 	ComPtr<ID3D11Buffer>		globalShaderConstants;
 
 	GlobalShaderConstants constants;
 	GlobalShaderSwitches switches;
+
+	ComPtr<ID3D11ComputeShader> paletteGenCompShader;
+	ComPtr< ID3DBlob>			paletteGenCompShaderBlob;
 };
 
 // Private Member Functions
 ComPtr<ID3D11VertexShader> D3D11Func_CreateVertexShader(D3D11** ppd3d, const std::wstring& pData, ComPtr<ID3DBlob>& vertexShaderBlob, PipelineShaderType type);
 ComPtr<ID3D11PixelShader> D3D11Func_CreatePixelShader(D3D11** ppd3d, const std::wstring& pData, ComPtr<ID3DBlob>& pixelShaderBlob, PipelineShaderType type);
-
+ComPtr<ID3D11ComputeShader> D3D11Func_CreateComputeShader(D3D11** ppd3d, const std::wstring& pData, ComPtr<ID3DBlob>& computeShaderBlob, PipelineShaderType type);
 
 HRESULT D3D11Func_InitPipelineShaders(D3D11** ppd3d, D3D11Pipeline* pipeline, const std::wstring vertexShaderName, const std::wstring pixelShaderName, PipelineShaderType type);
 HRESULT D3D11Func_CreateDefaultSamplers(D3D11* d3d);
 HRESULT D3D11Func_CreateDefaultConstantBuffers(D3D11* d3d);
+HRESULT D3D11Func_CreatePaletteComputeShader(D3D11* d3d);
 HRESULT D3D11Func_CreateConstantBuffer(D3D11** ppd3d, ComPtr<ID3D11Buffer>& pBuffer, void* pInitialData, size_t size);
 bool	D3D11Func_ShaderManager_Init(D3D11** ppd3d);
 bool	D3D11Func_ShaderManager_Shutdown(D3D11** ppd3d);
@@ -244,6 +272,13 @@ bool D3D11Func_InitializeShaderSystem(D3D11** ppd3d)
 	return false;
 }
 
+HRESULT D3D11Func_InitComputeShader(D3D11** ppd3d, ComPtr<ID3D11ComputeShader> &pShader, ComPtr<ID3DBlob> &computeShaderBlob, const std::wstring computeShaderName, PipelineShaderType type)
+{
+	pShader = D3D11Func_CreateComputeShader(ppd3d, computeShaderName, computeShaderBlob, type);
+
+	return S_OK;
+}
+
 HRESULT D3D11Func_InitPipelineShaders(D3D11** ppd3d, D3D11Pipeline* pipeline, const std::wstring vertexShaderName, const std::wstring pixelShaderName, PipelineShaderType type)
 {
 	if (!pipeline->vertexShader)
@@ -348,6 +383,8 @@ bool D3D11Func_ShaderManager_Init( D3D11** ppd3d )
 	{
 		return false;
 	}
+
+	//hr = 
 
 	return true;
 }
@@ -466,21 +503,28 @@ bool D3D11Func_CreateVertexShaderInputLayout(D3D11** ppd3d, D3D11Pipeline* pipel
 	return true;
 }
 
-HRESULT D3D11Func_UpdateConstantBuffer(D3D11** ppd3d, D3D11Pipeline* pipeline, int slot, PipelineStage stage, void* pData, size_t size)
+HRESULT D3D11Func_UpdateConstantBuffer(D3D11** ppd3d, ComPtr<ID3D11Buffer> buf, void* pData, size_t size)
 {
-	if (!pipeline->constantBuffers[stage][slot])
+	if (!buf)
 	{
 		DISPDBG_FP(0, "ERROR: D3D11: Tried to update null constant buffer");
 		return E_FAIL;
 	}
 
 	D3D11_MAPPED_SUBRESOURCE mapped;
-	HRESULT hr = (*ppd3d)->context->Map(pipeline->constantBuffers[stage][slot].Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+	HRESULT hr = (*ppd3d)->context->Map(buf.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
 	if (FAILED(hr)) { DISPDBG_FP(0, "ERROR: ID3D11DeviceContext::Map() returned" << std::hex << hr); return hr; }
 
 	memcpy(mapped.pData, pData, size);
 
-	(*ppd3d)->context->Unmap(pipeline->constantBuffers[stage][slot].Get(), 0);
+	(*ppd3d)->context->Unmap(buf.Get(), 0);
+
+	return S_OK;
+}
+
+HRESULT D3D11Func_UpdateConstantBuffer(D3D11** ppd3d, D3D11Pipeline* pipeline, int slot, PipelineStage stage, void* pData, size_t size)
+{
+	return D3D11Func_UpdateConstantBuffer(ppd3d, pipeline->constantBuffers[stage][slot], pData, size);
 }
 
 HRESULT D3D11Func_CreateConstantBuffer(D3D11** ppd3d, ComPtr<ID3D11Buffer>& pBuffer, void* pInitialData, size_t size)
@@ -624,6 +668,30 @@ ComPtr<ID3D11PixelShader> D3D11Func_CreatePixelShader(D3D11** ppd3d, const std::
 	}
 
 	return pixelShader;
+}
+
+ComPtr<ID3D11ComputeShader> D3D11Func_CreateComputeShader(D3D11** ppd3d, const std::wstring& pData, ComPtr<ID3DBlob>& computeShaderBlob, PipelineShaderType type)
+{
+	if (!D3D11Func_CompileShader(pData, "Main", "cs_5_0", computeShaderBlob, type))
+	{
+		return nullptr;
+	}
+
+	ComPtr<ID3D11ComputeShader> computeShader;
+
+	HRESULT hr = (*ppd3d)->device->CreateComputeShader(
+		computeShaderBlob->GetBufferPointer(),
+		computeShaderBlob->GetBufferSize(),
+		nullptr,
+		&computeShader);
+
+	if (FAILED(hr))
+	{
+		DISPDBG_FP(0, "ERROR: D3D11: Failed to create compute shader" << std::hex << hr);
+		return nullptr;
+	}
+
+	return computeShader;
 }
 
 HRESULT D3D11Func_BindResources(D3D11* d3d, D3D11Pipeline* pipeline, PipelineStage pipelineStage, int count)
@@ -909,17 +977,29 @@ HRESULT D3D11Func_CreateDefaultSamplers(D3D11* d3d)
 	if (FAILED(hr)) { DISPDBG_FP(0, "ERROR:  ID3D11Device::CreateSamplerState() returned: " << std::hex << hr); return hr; }
 
 	D3D_SET_OBJECT_NAME_A(d3d->linearSamplerState, "generic_linear_sampler");
+
+	desc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+	hr = d3d->device->CreateSamplerState(&desc, &d3d->pointSamplerState);
+	if (FAILED(hr)) { DISPDBG_FP(0, "ERROR:  ID3D11Device::CreateSamplerState() returned: " << std::hex << hr); return hr; }
+
+	D3D_SET_OBJECT_NAME_A(d3d->pointSamplerState, "generic_point_sampler");
 }
 
 HRESULT D3D11Func_CreateDefaultConstantBuffers(D3D11* d3d)
 {
-	(*d3d).switches.switch_reserved = DirectX::XMINT4(0,0,0,0);
+	(*d3d).switches.switches_1 = DirectX::XMINT4(0,0,0,0);
 	(*d3d).constants.const_reserved = DirectX::XMFLOAT4(0, 0, 0, 0);
 
 	D3D11Func_CreateConstantBuffer(&d3d, d3d->globalShaderConstants, &(*d3d).constants, sizeof(GlobalShaderConstants));
 	D3D11Func_CreateConstantBuffer(&d3d, d3d->globalShaderSwitches, &(*d3d).switches, sizeof(GlobalShaderSwitches));
 
 	return S_OK;
+}
+
+HRESULT D3D11Func_CreatePaletteComputeShader(D3D11* d3d)
+{
+	//D3D11Func_CreateComputeShader(d3d, "")
+	return E_NOTIMPL;
 }
 
 HRESULT D3D11Func_DeleteSurface( D3D11Surface** ppsurface )
@@ -1067,6 +1147,7 @@ HRESULT D3D11Func_SetPixelShader(D3D11* d3d, D3D11Pipeline* pipeline)
 
 HRESULT D3D11Func_Draw(D3D11* d3d, D3D11Pipeline* pipeline)
 {
+	// SetPaletteState
 	d3d->context->Draw(pipeline->vertexCount, 0);
 	//d3d->context->ClearState();
 	return S_OK;
@@ -1328,8 +1409,8 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* srcSurface, D3D11Surf
 
 	// todo: fix shader paths
 	D3D11Func_InitPipelineShaders(&d3d, &d3d->defaultBlitPipeline, 
-		L"C:\\Projects\\Overcado\\laghaim-front-end\\fakeddraw\\shaders\\Main.vs.hlsl",
-		L"C:\\Projects\\Overcado\\laghaim-front-end\\fakeddraw\\shaders\\Main.ps.hlsl", PIPELINE_SHADER_FILE);
+		L"C:\\Projects\\Overcado\\laghaim-front-end\\fakeddraw\\shaders\\blit.vs.hlsl",
+		L"C:\\Projects\\Overcado\\laghaim-front-end\\fakeddraw\\shaders\\blit.ps.hlsl", PIPELINE_SHADER_FILE);
 
 	D3D11Func_CreateVertexShaderInputLayout(&d3d, &d3d->defaultBlitPipeline);
 	D3D11Func_CreateVertexBuffer(&d3d, &d3d->defaultBlitPipeline, vertices, ARRAYSIZE(vertices));
@@ -1342,32 +1423,50 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* srcSurface, D3D11Surf
 	d3d->defaultBlitPipeline.constantBuffers[PIPELINE_STAGE_PIXEL][0] = d3d->globalShaderSwitches;
 	d3d->defaultBlitPipeline.constantBuffers[PIPELINE_STAGE_PIXEL][1] = d3d->globalShaderConstants;
 
-	D3D11Func_UpdateConstantBuffer(&d3d, &d3d->defaultBlitPipeline, 0, PIPELINE_STAGE_PIXEL, &(*d3d).switches, sizeof(GlobalShaderSwitches));
-	D3D11Func_UpdateConstantBuffer(&d3d, &d3d->defaultBlitPipeline, 1, PIPELINE_STAGE_PIXEL, &(*d3d).switches, sizeof(GlobalShaderConstants));
+	// optional palette
+	if (dstSurface->palette)
+	{
+		if (dstSurface->palette->paletteLUT)
+		{
+			d3d->defaultBlitPipeline.constantBuffers[PIPELINE_STAGE_PIXEL][2] = dstSurface->palette->paletteLUT;
+
+			(*d3d).switches.switches_1 = DirectX::XMINT4(dstSurface->palette ? 1 : 0, 0, 0, 0);
+			D3D11Func_UpdateConstantBuffer(&d3d, &d3d->defaultBlitPipeline, 0, PIPELINE_STAGE_PIXEL, &(*d3d).switches, sizeof(GlobalShaderSwitches));
+		}
+	}
 
 	BlitShaderSwitches switches;
 	switches.switchesParam1 = DirectX::XMINT4(dwTrans, 0, 0, 0);
-	D3D11Func_CreateConstantBuffer(&d3d, &d3d->defaultBlitPipeline, 2, PIPELINE_STAGE_PIXEL, &switches, sizeof(BlitShaderSwitches));
-	D3D11Func_UpdateConstantBuffer(&d3d, &d3d->defaultBlitPipeline, 2, PIPELINE_STAGE_PIXEL, &switches, sizeof(BlitShaderSwitches));
+	D3D11Func_CreateConstantBuffer(&d3d, &d3d->defaultBlitPipeline, 3, PIPELINE_STAGE_PIXEL, &switches, sizeof(BlitShaderSwitches));
+	D3D11Func_UpdateConstantBuffer(&d3d, &d3d->defaultBlitPipeline, 3, PIPELINE_STAGE_PIXEL, &switches, sizeof(BlitShaderSwitches));
 
 	BlitShaderConstants constants;
 	constants.sampleParameters = DirectX::XMFLOAT4(x, y, w, h);
 	constants.tint = DirectX::XMFLOAT4(1, 1, 1, 1);
 	constants.colorKeys = DirectX::XMUINT4(fSrcCLow, fSrcCHigh, fDstCLow, fDstCHigh);
 
-	D3D11Func_CreateConstantBuffer(&d3d, &d3d->defaultBlitPipeline, 3, PIPELINE_STAGE_PIXEL, &constants, sizeof(BlitShaderConstants));
-	D3D11Func_UpdateConstantBuffer(&d3d, &d3d->defaultBlitPipeline, 3, PIPELINE_STAGE_PIXEL, &constants, sizeof(BlitShaderConstants));
+	D3D11Func_CreateConstantBuffer(&d3d, &d3d->defaultBlitPipeline, 4, PIPELINE_STAGE_PIXEL, &constants, sizeof(BlitShaderConstants));
+	D3D11Func_UpdateConstantBuffer(&d3d, &d3d->defaultBlitPipeline, 4, PIPELINE_STAGE_PIXEL, &constants, sizeof(BlitShaderConstants));
 
 	// bind all cbuffers to the shader
-	D3D11Func_BindConstantBuffers(d3d, &d3d->defaultBlitPipeline, PIPELINE_STAGE_PIXEL, 4);
+	D3D11Func_BindConstantBuffers(d3d, &d3d->defaultBlitPipeline, PIPELINE_STAGE_PIXEL, 5);
 
 	// set our samplers and then bind
+	// TODO: move to common
 	d3d->defaultBlitPipeline.samplerStates[PIPELINE_STAGE_PIXEL][0] = d3d->linearSamplerState;
-	D3D11Func_BindSamplers(d3d, &d3d->defaultBlitPipeline, PIPELINE_STAGE_PIXEL, 1);
+	d3d->defaultBlitPipeline.samplerStates[PIPELINE_STAGE_PIXEL][1] = d3d->pointSamplerState;
+	D3D11Func_BindSamplers(d3d, &d3d->defaultBlitPipeline, PIPELINE_STAGE_PIXEL, 2);
 
 	// set our resources / textures and then bind
-	d3d->defaultBlitPipeline.resourceStates[PIPELINE_STAGE_PIXEL][0] = srcSurface->srv;
-	D3D11Func_BindResources(d3d, &d3d->defaultBlitPipeline, PIPELINE_STAGE_PIXEL, 1);
+	d3d->defaultBlitPipeline.resourceStates[PIPELINE_STAGE_PIXEL][1] = srcSurface->srv;
+	//if (dstSurface->palette)
+	//{
+	//	if (dstSurface->palette->paletteLUT)
+	//	{
+	///		d3d->defaultBlitPipeline.resourceStates[PIPELINE_STAGE_PIXEL][1] = dstSurface->palette->paletteLUT;
+	//	}
+	//}
+	D3D11Func_BindResources(d3d, &d3d->defaultBlitPipeline, PIPELINE_STAGE_PIXEL, 2);
 
 	// do the drawing
 	D3D11Func_Draw(d3d, &d3d->defaultBlitPipeline);
@@ -1382,4 +1481,82 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* srcSurface, D3D11Surf
 	d3d->context->CopySubresourceRegion(pResource, 0, lpDestRect->left, lpDestRect->top, 0, surface->texture, 0, nullptr);
 	*/
 	return S_OK;
+}
+
+HRESULT D3D11SurfaceFunc_SetPalette(D3D11* d3d, D3D11Surface** surf, D3D11Palette* pal)
+{
+	(*surf)->palette = pal;
+	return S_OK;
+}
+
+HRESULT D3D11PaletteFunc_Initialize(D3D11* d3d, D3D11Palette* pal, LPPALETTEENTRY lpDDColorArray, DWORD dwFlags)
+{
+	pal->parent_context = d3d;
+
+	// determine the count
+	int numPaletteCount = MAX_PALETTE_ENTRY_COUNT;
+
+	if ( dwFlags & DDPCAPS_8BIT )
+	{
+		numPaletteCount = 256;
+	}
+	else if (dwFlags & DDPCAPS_4BIT)
+	{
+		numPaletteCount = 16;
+	}
+	else if (dwFlags & DDPCAPS_2BIT)
+	{
+		numPaletteCount = 4;
+	}
+	else if (dwFlags & DDPCAPS_1BIT)
+	{
+		numPaletteCount = 2;
+	}
+
+	for (int i = 0; i < numPaletteCount; i++)
+	{
+		// on shader, we use RGB
+		unsigned int peRed = lpDDColorArray[i].peRed;
+		unsigned int peGreen = lpDDColorArray[i].peGreen;
+		unsigned int peBlue = lpDDColorArray[i].peBlue;
+
+		pal->palette.paletteEntries[i] = DirectX::XMFLOAT4((float)peRed / 255.f, (float)peGreen / 255.f, (float)peBlue / 255.f, 255);
+	}
+
+	// Create a cbuffer with the palette state.
+	D3D11Func_CreateConstantBuffer(&d3d, pal->paletteLUT, &pal->palette, sizeof(pal->palette));
+
+	return S_OK;
+}
+
+HRESULT D3D11PaletteFunc_CreatePalette(D3D11* d3d, D3D11Palette** pal, LPPALETTEENTRY lpDDColorArray, DWORD dwFlags)
+{
+	*pal = new D3D11Palette();
+
+	return D3D11PaletteFunc_Initialize(d3d, *pal, lpDDColorArray, dwFlags);
+}
+
+HRESULT D3D11PaletteFunc_DeletePalette(D3D11Palette** pal)
+{
+	if ((*pal)->paletteLUT)
+		(*pal)->paletteLUT->Release();
+
+	return S_OK;
+}
+
+HRESULT D3D11PaletteFunc_UpdatePalette(D3D11* ppd3d, D3D11Palette* pal, DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries)
+{
+	for (int i = dwStartingEntry; i < dwCount; i++)
+	{
+		// on shader, we use RGB
+		unsigned int peRed = lpEntries[i].peRed;
+		unsigned int peGreen = lpEntries[i].peGreen;
+		unsigned int peBlue = lpEntries[i].peBlue;
+
+		pal->palette.paletteEntries[i] = DirectX::XMFLOAT4((float)peRed / 255.f, (float)peGreen / 255.f, (float)peBlue / 255.f, 255);
+	}
+
+	//D3D11Func_UpdateConstantBuffer(&ppd3d, pal->paletteLUT, pal->palette.paletteEntries, sizeof(pal->palette.paletteEntries));
+	
+	return  S_OK;
 }

@@ -1,8 +1,7 @@
 #include "common.ps.hlsl"
 
 // textures
-Texture2D Tex               : register(t0);
-SamplerState TexSampler     : register(s0);
+Texture2D Tex               : register(t1);
 
 struct PSInput
 {
@@ -16,26 +15,19 @@ struct PSOutput
     float4 color : SV_Target0;
 };
 
-cbuffer BlitShaderSwitches : register(b2)
+cbuffer BlitShaderSwitches : register(b3)
 {
     uint4 switchesParam1;
 }
 #define COLORKEYMODE switchesParam1.x
 
 
-cbuffer BlitShaderConstants : register(b3)
+cbuffer BlitShaderConstants : register(b4)
 {
     float4 sampleParameters;
     float4 tint;
     uint4 srcKeys;
 };
-
-// only works on 8bit color space
-unsigned int createARGBdword(int r, int g, int b, int a)
-{
-    return (((a & 0xff) << 24) + ((r & 0xff) << 16) + ((g & 0xff) << 8) + (b & 0xff));
-}
-
 
 void PerformColorKey(float4 srcColor, float4 dstColor, uint4 colorKeys, int mode)
 {
@@ -58,9 +50,10 @@ PSOutput Main(PSInput input)
     uv *= sampleParameters.zw; // scale 
     uv += sampleParameters.xy; // translate
     
-    float4 col = Tex.Sample(TexSampler, uv) * tint;
-
+    float4 col = Tex.Sample(LinearSampler, uv) * tint;
+   
     PerformColorKey(col, float4(0, 0, 0, 0), srcKeys, COLORKEYMODE);
+    col = PerformColorPalette(col);
     
     output.color = col;
     return output;
