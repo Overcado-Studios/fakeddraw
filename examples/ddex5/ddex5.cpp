@@ -31,18 +31,18 @@
 //-----------------------------------------------------------------------------
 // Global data
 //-----------------------------------------------------------------------------
-LPDIRECTDRAW7               g_pDD = NULL;        // DirectDraw object
-LPDIRECTDRAWSURFACE7        g_pDDSPrimary = NULL;// DirectDraw primary surface
-LPDIRECTDRAWSURFACE7        g_pDDSBack = NULL;   // DirectDraw back surface
-LPDIRECTDRAWSURFACE7        g_pDDSOne = NULL;    // Offscreen surface 1
-LPDIRECTDRAWPALETTE         g_pDDPal = NULL;     // The primary surface palette
+IDirectDrawFake* g_pDD = NULL;        // DirectDraw object
+IDirectDrawSurfaceFake* g_pDDSPrimary = NULL;// DirectDraw primary surface
+IDirectDrawSurfaceFake* g_pDDSBack = NULL;   // DirectDraw back surface
+IDirectDrawSurfaceFake* g_pDDSOne = NULL;    // Offscreen surface 1
+IDirectDrawPaletteFake* g_pDDPal = NULL;
 BOOL                        g_bActive = FALSE;   // Is application active?
 
 //-----------------------------------------------------------------------------
 // Local data
 //-----------------------------------------------------------------------------
 // Name of our bitmap resource.
-static char                 szBitmap[] = "ALL";
+static char                 szBitmap[] = "all.bmp";
 // Marks the colors used in the torus
 static BYTE                 torusColors[256];
 
@@ -92,7 +92,7 @@ InitFail(HWND hWnd, HRESULT hRet, LPCTSTR szError,...)
     va_list                     vl;
 
     va_start(vl, szError);
-    vsprintf(szBuff, szError, vl);
+    vsprintf_s(szBuff, szError, vl);
     ReleaseAllObjects();
     MessageBox(hWnd, szBuff, TITLE, MB_OK);
     DestroyWindow(hWnd);
@@ -383,7 +383,7 @@ InitApp(HINSTANCE hInstance, int nCmdShow)
     ///////////////////////////////////////////////////////////////////////////
     // Create the main DirectDraw object
     ///////////////////////////////////////////////////////////////////////////
-    hRet = DirectDrawCreateEx(NULL, (VOID**)&g_pDD, IID_IDirectDraw7, NULL);
+    hRet = DirectDrawFakeCreateEx(NULL, (VOID**)&g_pDD, IID_IDirectDraw7, NULL);
     if (hRet != DD_OK)
         return InitFail(hWnd, hRet, "DirectDrawCreateEx FAILED");
 
