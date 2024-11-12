@@ -71,19 +71,21 @@ struct PaletteState
 	DirectX::XMFLOAT4 paletteEntries[MAX_PALETTE_ENTRY_COUNT];
 };
 
-struct D3D11Palette
-{
-	D3D11*						parent_context;
-	PaletteState				palette;
-	ComPtr<ID3D11Buffer>		paletteLUT;
-};
-
 struct D3D11StructuredBuffer
 {
 	ComPtr<ID3D11UnorderedAccessView>	uav;
 	ComPtr<ID3D11ShaderResourceView>	srv;
 	ComPtr<ID3D11Buffer>				buffer;
+	size_t								size;
+	size_t								structSize;
 	bool								isUnorderedAccess;
+};
+
+struct D3D11Palette
+{
+	D3D11*						parent_context;
+	PaletteState				palette;
+	D3D11StructuredBuffer		paletteLUT;
 };
 
 enum PipelineShaderType
@@ -501,6 +503,141 @@ bool D3D11Func_CreateVertexShaderInputLayout(D3D11** ppd3d, D3D11Pipeline* pipel
 	}
 
 	return true;
+}
+
+HRESULT D3D11Func_CreateStructuredBuffer(D3D11** ppd3d, D3D11StructuredBuffer *buf, void* pInitialData, size_t size, size_t structSize, bool bUnorderedAccess)
+{
+	D3D11_BUFFER_DESC desc = {};
+	ID3D11Buffer* pBuffer;
+
+	// Create the buffer
+	{
+		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+		if (bUnorderedAccess)
+		{
+			desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+		}
+
+		desc.ByteWidth = size;
+		desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+		desc.StructureByteStride = structSize;
+
+		if (!bUnorderedAccess)
+		{
+			desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+			desc.Usage = D3D11_USAGE_DYNAMIC;
+		}
+
+		if (pInitialData)
+		{
+			D3D11_SUBRESOURCE_DATA resourceData = {};
+			resourceData.pSysMem = pInitialData;
+
+			HRESULT hr = (*ppd3d)->device->CreateBuffer(&desc, &resourceData, &pBuffer);
+			if (FAILED(hr) || !pBuffer) { DISPDBG_FP(0, "ERROR: ID3D11Device::CreateBuffer() returned" << std::hex << hr); return hr; }
+		}
+		else
+		{
+			HRESULT hr = (*ppd3d)->device->CreateBuffer(&desc, nullptr, &pBuffer);
+			if (FAILED(hr) || !pBuffer) { DISPDBG_FP(0, "ERROR: ID3D11Device::CreateBuffer() returned" << std::hex << hr); return hr; }
+		}
+
+		buf->buffer = pBuffer;
+		buf->isUnorderedAccess = bUnorderedAccess;
+		buf->size = size;
+		buf->structSize = structSize;
+	}
+
+	// Create buffer SRV
+	{
+		pBuffer->GetDesc(&desc);
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC descSRV = {};
+		descSRV.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;
+		descSRV.BufferEx.FirstElement = 0;
+
+		if (desc.MiscFlags & D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS)
+		{
+			// This is a Raw Buffer
+			descSRV.Format = DXGI_FORMAT_R32_TYPELESS;
+			descSRV.BufferEx.Flags = D3D11_BUFFEREX_SRV_FLAG_RAW;
+			descSRV.BufferEx.NumElements = desc.ByteWidth / 4;
+		}
+		else if (desc.MiscFlags & D3D11_RESOURCE_MISC_BUFFER_STRUCTURED)
+		{
+			// This is a Structured Buffer
+
+			descSRV.Format = DXGI_FORMAT_UNKNOWN;
+			descSRV.BufferEx.NumElements = desc.ByteWidth / desc.StructureByteStride;
+		}
+		else
+		{
+			buf->srv = nullptr;
+		}
+
+		ID3D11ShaderResourceView* ppView = nullptr;
+		HRESULT hr = (*ppd3d)->device->CreateShaderResourceView(pBuffer, &descSRV, &ppView);
+
+		if (FAILED(hr)) { DISPDBG_FP(0, "ERROR: ID3D11Device::CreateShaderResourceView() returned" << std::hex << hr); return hr; }
+
+		buf->srv = ppView;
+	}
+
+	// Create buffer UAV
+	if (bUnorderedAccess)
+	{
+		pBuffer->GetDesc(&desc);
+
+		D3D11_UNORDERED_ACCESS_VIEW_DESC descUAV = {};
+		descUAV.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+		descUAV.Buffer.FirstElement = 0;
+
+		if (desc.MiscFlags & D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS)
+		{
+			// This is a Raw Buffer
+
+			descUAV.Format = DXGI_FORMAT_R32_TYPELESS; // Format must be DXGI_FORMAT_R32_TYPELESS, when creating Raw Unordered Access View
+			descUAV.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_RAW;
+			descUAV.Buffer.NumElements = desc.ByteWidth / 4;
+		}
+		else if (desc.MiscFlags & D3D11_RESOURCE_MISC_BUFFER_STRUCTURED)
+		{
+			// This is a Structured Buffer
+
+			descUAV.Format = DXGI_FORMAT_UNKNOWN;      // Format must be must be DXGI_FORMAT_UNKNOWN, when creating a View of a Structured Buffer
+			descUAV.Buffer.NumElements = desc.ByteWidth / desc.StructureByteStride;
+		}
+		else
+		{
+			buf->uav = nullptr;
+		}
+
+		ID3D11UnorderedAccessView* ppView = nullptr;
+		HRESULT hr = (*ppd3d)->device->CreateUnorderedAccessView(pBuffer, &descUAV, &ppView);
+		if (FAILED(hr)) { DISPDBG_FP(0, "ERROR: ID3D11Device::CreateUnorderedAccessView() returned" << std::hex << hr); }
+
+
+		buf->uav = ppView;
+
+	}
+
+	return S_OK;
+}
+
+HRESULT D3D11Func_UpdateStructuredBuffer(D3D11** ppd3d, D3D11StructuredBuffer* buf, void* pData)
+{
+	ID3D11Buffer* pBuffer = buf->buffer.Get();
+
+	D3D11_MAPPED_SUBRESOURCE mapped;
+	HRESULT hr = (*ppd3d)->context->Map(pBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+	if (FAILED(hr)) { DISPDBG_FP(0, "ERROR: ID3D11DeviceContext::Map() returned" << std::hex << hr); }
+
+	memcpy(mapped.pData, pData, buf->size);
+
+	(*ppd3d)->context->Unmap(pBuffer, 0);
+
+	return S_OK;
 }
 
 HRESULT D3D11Func_UpdateConstantBuffer(D3D11** ppd3d, ComPtr<ID3D11Buffer> buf, void* pData, size_t size)
@@ -1426,9 +1563,9 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* srcSurface, D3D11Surf
 	// optional palette
 	if (dstSurface->palette)
 	{
-		if (dstSurface->palette->paletteLUT)
+		if (dstSurface->palette->paletteLUT.buffer)
 		{
-			d3d->defaultBlitPipeline.constantBuffers[PIPELINE_STAGE_PIXEL][2] = dstSurface->palette->paletteLUT;
+			d3d->defaultBlitPipeline.resourceStates[PIPELINE_STAGE_PIXEL][0] = dstSurface->palette->paletteLUT.srv;
 
 			(*d3d).switches.switches_1 = DirectX::XMINT4(dstSurface->palette ? 1 : 0, 0, 0, 0);
 			D3D11Func_UpdateConstantBuffer(&d3d, &d3d->defaultBlitPipeline, 0, PIPELINE_STAGE_PIXEL, &(*d3d).switches, sizeof(GlobalShaderSwitches));
@@ -1523,10 +1660,8 @@ HRESULT D3D11PaletteFunc_Initialize(D3D11* d3d, D3D11Palette* pal, LPPALETTEENTR
 		pal->palette.paletteEntries[i] = DirectX::XMFLOAT4((float)peRed / 255.f, (float)peGreen / 255.f, (float)peBlue / 255.f, 255);
 	}
 
-	// Create a cbuffer with the palette state.
-	D3D11Func_CreateConstantBuffer(&d3d, pal->paletteLUT, &pal->palette, sizeof(pal->palette));
-
-	return S_OK;
+	// Create a structured buffer with the palette state.
+	return D3D11Func_CreateStructuredBuffer(&d3d, &pal->paletteLUT, &pal->palette.paletteEntries, sizeof(pal->palette.paletteEntries), sizeof(DirectX::XMFLOAT4), false);
 }
 
 HRESULT D3D11PaletteFunc_CreatePalette(D3D11* d3d, D3D11Palette** pal, LPPALETTEENTRY lpDDColorArray, DWORD dwFlags)
@@ -1538,15 +1673,15 @@ HRESULT D3D11PaletteFunc_CreatePalette(D3D11* d3d, D3D11Palette** pal, LPPALETTE
 
 HRESULT D3D11PaletteFunc_DeletePalette(D3D11Palette** pal)
 {
-	if ((*pal)->paletteLUT)
-		(*pal)->paletteLUT->Release();
+	if ((*pal)->paletteLUT.buffer)
+		(*pal)->paletteLUT.buffer->Release();
 
 	return S_OK;
 }
 
 HRESULT D3D11PaletteFunc_UpdatePalette(D3D11* ppd3d, D3D11Palette* pal, DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries)
 {
-	for (int i = dwStartingEntry; i < dwCount; i++)
+	for (unsigned int i = dwStartingEntry; i < dwStartingEntry + dwCount; i++)
 	{
 		// on shader, we use RGB
 		unsigned int peRed = lpEntries[i].peRed;
@@ -1556,7 +1691,7 @@ HRESULT D3D11PaletteFunc_UpdatePalette(D3D11* ppd3d, D3D11Palette* pal, DWORD dw
 		pal->palette.paletteEntries[i] = DirectX::XMFLOAT4((float)peRed / 255.f, (float)peGreen / 255.f, (float)peBlue / 255.f, 255);
 	}
 
-	//D3D11Func_UpdateConstantBuffer(&ppd3d, pal->paletteLUT, pal->palette.paletteEntries, sizeof(pal->palette.paletteEntries));
+	D3D11Func_UpdateStructuredBuffer(&ppd3d, &pal->paletteLUT, pal->palette.paletteEntries);
 	
 	return  S_OK;
 }

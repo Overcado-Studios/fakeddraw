@@ -47,7 +47,7 @@ struct DDrawPalettePrivate
 	ULONG RefCount;
 	DWORD dwFlags;
 
-	LPPALETTEENTRY	peEntries;
+	PALETTEENTRY                paletteEntries[256];
 
 	D3D11* pParentD3DContext;
 	D3D11Palette* pPalette;
@@ -221,8 +221,30 @@ HRESULT WINAPI IDirectDrawFake_CreatePalette( IDirectDrawFake* This, DWORD dwFla
 
 	_ACCESS(DDrawPalettePrivate, (*lplpDDPalette))->pParentD3DContext = ACCESS(DDrawPrivate)->pD3DContext;
 	_ACCESS(DDrawPalettePrivate, (*lplpDDPalette))->dwFlags = dwFlags;
-	_ACCESS(DDrawPalettePrivate, (*lplpDDPalette))->peEntries = lpDDColorArray;
 	_ACCESS(DDrawPalettePrivate, (*lplpDDPalette))->RefCount = 1;
+
+	int numPaletteCount = 256;
+	if (dwFlags & DDPCAPS_8BIT)
+	{
+		numPaletteCount = 256;
+	}
+	else if (dwFlags & DDPCAPS_4BIT)
+	{
+		numPaletteCount = 16;
+	}
+	else if (dwFlags & DDPCAPS_2BIT)
+	{
+		numPaletteCount = 4;
+	}
+	else if (dwFlags & DDPCAPS_1BIT)
+	{
+		numPaletteCount = 2;
+	}
+
+	for (int i = 0; i < numPaletteCount; i++)
+	{
+		_ACCESS(DDrawPalettePrivate, (*lplpDDPalette))->paletteEntries[i] = lpDDColorArray[i];
+	}
 
 	return DD_OK;
 }
@@ -331,7 +353,10 @@ HRESULT WINAPI IDirectDrawFake::GetCaps( LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDH
 
 HRESULT WINAPI IDirectDrawFake_GetCaps( IDirectDrawFake* This, LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps )
 {
-	LOGUNIMPL_F;
+	lpDDDriverCaps->ddsCaps.dwCaps = DDSCAPS_3DDEVICE || DDSCAPS_OVERLAY || DDCAPS_OVERLAYSTRETCH;
+
+	return S_OK;
+
 }
 
 HRESULT WINAPI IDirectDrawFake::GetDeviceIdentifier( LPDDDEVICEIDENTIFIER2 lpdddi, DWORD dwFlags )
@@ -1440,6 +1465,31 @@ HRESULT WINAPI IDirectDrawPaletteFake::GetEntries( DWORD dwFlags, DWORD dwBase, 
 HRESULT WINAPI IDirectDrawPaletteFake_GetEntries( IDirectDrawPaletteFake* This, DWORD dwFlags, DWORD dwBase, DWORD dwNumEntries, LPPALETTEENTRY lpEntries )
 {
 	D3D11Palette* pal = ACCESS(DDrawPalettePrivate)->pPalette;
+	
+	int numPaletteCount = 256;
+	DWORD dwFlagsPrivate = ACCESS(DDrawPalettePrivate)->dwFlags;
+
+	if (dwFlagsPrivate & DDPCAPS_8BIT)
+	{
+		numPaletteCount = 256;
+	}
+	else if (dwFlagsPrivate & DDPCAPS_4BIT)
+	{
+		numPaletteCount = 16;
+	}
+	else if (dwFlagsPrivate & DDPCAPS_2BIT)
+	{
+		numPaletteCount = 4;
+	}
+	else if (dwFlagsPrivate & DDPCAPS_1BIT)
+	{
+		numPaletteCount = 2;
+	}
+
+	for (int i = 0; i < numPaletteCount; i++)
+	{
+		lpEntries[i] = ACCESS(DDrawPalettePrivate)->paletteEntries[i];
+	}
 
 	return S_OK;
 }
@@ -1454,13 +1504,35 @@ HRESULT WINAPI IDirectDrawPaletteFake_Initialize(  IDirectDrawPaletteFake* This,
 	D3D11Palette* pal = ACCESS(DDrawPalettePrivate)->pPalette;
 	D3D11* d3d = ACCESS(DDrawPalettePrivate)->pParentD3DContext;
 
+	// determine the count
+	int numPaletteCount = 256;
+
+	if (dwFlags & DDPCAPS_8BIT)
+	{
+		numPaletteCount = 256;
+	}
+	else if (dwFlags & DDPCAPS_4BIT)
+	{
+		numPaletteCount = 16;
+	}
+	else if (dwFlags & DDPCAPS_2BIT)
+	{
+		numPaletteCount = 4;
+	}
+	else if (dwFlags & DDPCAPS_1BIT)
+	{
+		numPaletteCount = 2;
+	}
+
+	ACCESS(DDrawPalettePrivate)->dwFlags = dwFlags;
+	for (int i = 0; i < numPaletteCount; i++)
+	{
+		ACCESS(DDrawPalettePrivate)->paletteEntries[i] = lpDDColorTable[i];
+	}
+
 	HRESULT hr = D3D11PaletteFunc_Initialize(d3d, pal, lpDDColorTable, dwFlags);
 
 	if (FAILED(hr)) { return hr; };
-
-	ACCESS(DDrawPalettePrivate)->dwFlags = dwFlags;
-	ACCESS(DDrawPalettePrivate)->peEntries = lpDDColorTable;
-
 }
 
 HRESULT WINAPI IDirectDrawPaletteFake::SetEntries( DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries )
@@ -1473,7 +1545,38 @@ HRESULT WINAPI IDirectDrawPaletteFake_SetEntries( IDirectDrawPaletteFake* This, 
 	D3D11Palette* pal = ACCESS(DDrawPalettePrivate)->pPalette;
 	D3D11* d3d = ACCESS(DDrawPalettePrivate)->pParentD3DContext;
 
-	return D3D11PaletteFunc_UpdatePalette(d3d, pal, dwFlags, dwStartingEntry, dwCount, lpEntries);
+	int numPaletteCount = 256;
+	DWORD dwFlagsPrivate = ACCESS(DDrawPalettePrivate)->dwFlags;
+
+	if (dwFlagsPrivate & DDPCAPS_8BIT)
+	{
+		numPaletteCount = 256;
+	}
+	else if (dwFlagsPrivate & DDPCAPS_4BIT)
+	{
+		numPaletteCount = 16;
+	}
+	else if (dwFlagsPrivate & DDPCAPS_2BIT)
+	{
+		numPaletteCount = 4;
+	}
+	else if (dwFlagsPrivate & DDPCAPS_1BIT)
+	{
+		numPaletteCount = 2;
+	}
+
+	if (dwStartingEntry + dwCount > numPaletteCount)
+	{
+		return E_INVALIDARG;
+	}
+
+	for (int i = dwStartingEntry; i < dwStartingEntry + dwCount; i++)
+	{
+		ACCESS(DDrawPalettePrivate)->paletteEntries[i] = lpEntries[i];
+	}
+
+	HRESULT hr = D3D11PaletteFunc_UpdatePalette(d3d, pal, dwFlags, dwStartingEntry, dwCount, lpEntries);
+	if (FAILED(hr)) { return hr; };
 }
 
 HRESULT WINAPI DirectDrawFakeCreate( GUID FAR *lpGUID, IDirectDrawFake FAR **lplpDD, IUnknownFake FAR *pUnkOuter )
