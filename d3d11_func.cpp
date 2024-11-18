@@ -907,6 +907,11 @@ HRESULT D3D11Func_WaitForVerticalBlank( D3D11* d3d, DWORD dwFlags )
 	return d3d->ddraw->WaitForVerticalBlank( dwFlags, NULL );
 }
 
+HRESULT D3D11Func_GetDDrawCaps(D3D11* d3d, LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
+{
+	return d3d->ddraw->GetCaps(lpDDDriverCaps, lpDDHELCaps);
+}
+
 HRESULT D3D11Func_GetAvailableVidMem( D3D11* d3d, LPDDSCAPS2 lpDDSCaps2, DWORD* dwTotal, DWORD* dwFree )
 {
 	/* We have two viable options: Use DDraw directly or actually use DX11.  The case for using the latter
@@ -1460,7 +1465,10 @@ HRESULT D3D11SurfaceFunc_Blt( D3D11* d3d, D3D11Surface* srcSurface, D3D11Surface
 		}
 
 		// TODO: verify if works
-		D3D11SurfaceFunc_BltFast(d3d, srcSurface, dstSurface, lpDestRect, lpSrcRect, DDBLTFAST_NOCOLORKEY, nullptr, nullptr); 
+		if (srcSurface)
+		{
+			D3D11SurfaceFunc_BltFast(d3d, srcSurface, dstSurface, lpDestRect, lpSrcRect, DDBLTFAST_NOCOLORKEY, nullptr, nullptr);
+		}
 
 	}
 
@@ -1561,7 +1569,8 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* srcSurface, D3D11Surf
 	d3d->defaultBlitPipeline.constantBuffers[PIPELINE_STAGE_PIXEL][1] = d3d->globalShaderConstants;
 
 	// optional palette
-	if (dstSurface->palette)
+	// TODO: fix and make worky
+	if ( dstSurface->palette )
 	{
 		if (dstSurface->palette->paletteLUT.buffer)
 		{

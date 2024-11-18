@@ -21,6 +21,7 @@ bool	D3D11Func_InitializeShaderSystem( D3D11** ppd3d );
 
 HRESULT D3D11Func_SetDisplayMode( D3D11* d3d, int width, int height, int bpp, int refresh_rate, int fullscreen );
 HRESULT D3D11Func_WaitForVerticalBlank( D3D11* d3d, DWORD dwFlags );
+HRESULT D3D11Func_GetDDrawCaps(D3D11* d3d, LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps);
 HRESULT D3D11Func_GetAvailableVidMem( D3D11* d3d, LPDDSCAPS2 lpDDSCaps2, DWORD* dwTotal, DWORD* dwFree );
 HRESULT D3D11Func_GetScanLine( D3D11* d3d, LPDWORD scanline );
 HRESULT D3D11Func_GetVerticalBlankStatus( D3D11* d3d, LPBOOL lpbIsInVB );

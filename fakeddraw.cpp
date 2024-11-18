@@ -353,10 +353,7 @@ HRESULT WINAPI IDirectDrawFake::GetCaps( LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDH
 
 HRESULT WINAPI IDirectDrawFake_GetCaps( IDirectDrawFake* This, LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps )
 {
-	lpDDDriverCaps->ddsCaps.dwCaps = DDSCAPS_3DDEVICE || DDSCAPS_OVERLAY || DDCAPS_OVERLAYSTRETCH;
-
-	return S_OK;
-
+	return D3D11Func_GetDDrawCaps(ACCESS(DDrawPrivate)->pD3DContext, lpDDDriverCaps, lpDDHELCaps);
 }
 
 HRESULT WINAPI IDirectDrawFake::GetDeviceIdentifier( LPDDDEVICEIDENTIFIER2 lpdddi, DWORD dwFlags )
