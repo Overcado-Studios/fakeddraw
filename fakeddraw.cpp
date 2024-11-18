@@ -611,13 +611,19 @@ HRESULT WINAPI IDirectDrawSurfaceFake_Blt( IDirectDrawSurfaceFake* This, LPRECT 
 
 	D3D11* d3d = ACCESS(DDrawSurfacePrivate)->pParentD3DContext;
 
-	D3D11Surface* srcSurface = _ACCESS(DDrawSurfacePrivate, lpDDSrcSurface)->pSurface;
 	D3D11Surface* dstSurface = ACCESS(DDrawSurfacePrivate)->pSurface;
+	D3D11Surface* srcSurface = nullptr;
 
 	/* If this is the back buffer being blitted to the front buffer, just call Present and get it over with */
 	if( lpDDSrcSurface )
 		if( SUCCEEDED( D3D11Func_LazyPresent( d3d, _ACCESS(DDrawSurfacePrivate,lpDDSrcSurface)->pSurface, ACCESS(DDrawSurfacePrivate)->pSurface ) ) )
 			return DD_OK;
+
+
+	if (lpDDSrcSurface)
+	{
+		srcSurface = _ACCESS(DDrawSurfacePrivate, lpDDSrcSurface)->pSurface;
+	}
 
 	// else we run the normal blit
 	return D3D11SurfaceFunc_Blt( ACCESS(DDrawSurfacePrivate)->pParentD3DContext, srcSurface, dstSurface, lpDestRect, lpSrcRect, dwFlags, lpDDBltFx );
