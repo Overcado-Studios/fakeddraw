@@ -1028,12 +1028,12 @@ HRESULT D3D11Func_CreateSurface( D3D11* d3d, D3D11Surface** ppsurface, DDSURFACE
 			}
 			g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);*/
 		}
-		else if( pddsd->ddsCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN )
+		else if( (pddsd->ddsCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN) || (pddsd->ddsCaps.dwCaps & DDSCAPS_OVERLAY) )
 		{
 			(*ppsurface)->flags |= D3D11_SURF_FLAG_TEXTURE;
 
 			D3D11_TEXTURE2D_DESC desc2D;
-			desc2D.Format = DXGI_FORMAT_B8G8R8A8_UNORM; // todo: convert 
+			desc2D.Format = DXGI_FORMAT_B8G8R8A8_UNORM; // todo: convert from pixelformat?
 			desc2D.Width = pddsd->dwWidth;
 			desc2D.Height = pddsd->dwHeight;
 			desc2D.ArraySize = 1;
@@ -1179,21 +1179,6 @@ HRESULT D3D11Func_SetViewport( D3D11* d3d, D3DVIEWPORT7* vp )
 	d3d->context->RSSetViewports( 1, &vp11 );
 
 	return S_OK; 
-}
-
-HRESULT D3D11Func_SetViewport2(D3D11* d3d)
-{
-	D3D11_VIEWPORT vp11;
-	vp11.TopLeftX = 0;
-	vp11.TopLeftY = 0;
-	vp11.Width = 640;
-	vp11.Height = 480;
-	vp11.MinDepth = 0;
-	vp11.MaxDepth = 1;
-
-	d3d->context->RSSetViewports(1, &vp11);
-
-	return S_OK;
 }
 
 HRESULT D3D11Func_ClearRT( D3D11* d3d, DWORD dwColour )
@@ -1554,8 +1539,8 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* srcSurface, D3D11Surf
 
 	// todo: fix shader paths
 	D3D11Func_InitPipelineShaders(&d3d, &d3d->defaultBlitPipeline, 
-		L"C:\\Projects\\Overcado\\laghaim-front-end\\fakeddraw\\shaders\\blit.vs.hlsl",
-		L"C:\\Projects\\Overcado\\laghaim-front-end\\fakeddraw\\shaders\\blit.ps.hlsl", PIPELINE_SHADER_FILE);
+		L"../../shaders/blit.vs.hlsl",
+		L"../../shaders/blit.ps.hlsl", PIPELINE_SHADER_FILE);
 
 	D3D11Func_CreateVertexShaderInputLayout(&d3d, &d3d->defaultBlitPipeline);
 	D3D11Func_CreateVertexBuffer(&d3d, &d3d->defaultBlitPipeline, vertices, ARRAYSIZE(vertices));

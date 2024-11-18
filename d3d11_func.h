@@ -30,8 +30,6 @@ HRESULT D3D11Func_Present( D3D11* d3d );
 HRESULT D3D11Func_CreateSurface( D3D11* d3d, D3D11Surface** ppsurface, DDSURFACEDESC2* pddsd );
 HRESULT D3D11Func_DeleteSurface( D3D11Surface** ppsurface );
 HRESULT D3D11Func_SetViewport( D3D11* d3d, D3DVIEWPORT7* vp );
-HRESULT D3D11Func_SetViewport2(D3D11* d3d); // TODO: remove 
-
 
 HRESULT D3D11Func_ClearRT( D3D11* d3d, DWORD dwColour );
 HRESULT D3D11Func_ClearDS( D3D11* d3d, DWORD flag, float z, DWORD stencil );
