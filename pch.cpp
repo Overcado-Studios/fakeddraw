@@ -36,5 +36,5 @@ do { \
 
 void test()
 {
-    NVASSERT(0, "foo");
+    //NVASSERT(0, "foo");
 }
