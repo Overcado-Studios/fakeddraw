@@ -1278,7 +1278,32 @@ HRESULT WINAPI IDirectDrawSurfaceFake::UpdateOverlay( LPRECT lpSrcRect, IDirectD
 
 HRESULT WINAPI IDirectDrawSurfaceFake_UpdateOverlay( IDirectDrawSurfaceFake* This, LPRECT lpSrcRect, IDirectDrawSurfaceFake* lpDDDestSurface, LPRECT lpDestRect, DWORD dwFlags, LPDDOVERLAYFX lpDDOverlayFx )
 {
-	LOGUNIMPL_F;
+	DDrawSurfacePrivate* dstSurf = _ACCESS(DDrawSurfacePrivate, lpDDDestSurface); 
+	DDrawSurfacePrivate* srcSurf = ACCESS(DDrawSurfacePrivate);
+
+	if (ACCESS(DDrawSurfacePrivate)->pAttachedSurface)
+	{
+		// if we have an attached surface to this surface, it might be the front buffer. 
+		// since we cant access the front buffer easily on D3D11, we need to set the state to the back
+		// buffer instead.
+
+		srcSurf = ACCESS(DDrawSurfacePrivate)->pAttachedSurface;
+	}
+
+	D3D11* d3d = dstSurf->pParentD3DContext;
+	D3D11Func_SetRenderTarget(d3d, &dstSurf->pSurface);
+
+	DDSURFACEDESC2 ddsd = srcSurf->ddsd;
+
+
+	D3D11Surface* srcSurface = srcSurf->pSurface;
+	D3D11Surface* dstSurface = dstSurf->pSurface;
+
+	LPDDCOLORKEY srcColorKey = nullptr;
+	LPDDCOLORKEY dstColorKey = nullptr;
+
+
+	return D3D11SurfaceFunc_BltFast(d3d, srcSurface, dstSurface, lpDestRect, lpSrcRect, 0, srcColorKey, dstColorKey);
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::UpdateOverlayDisplay( DWORD dwFlags )
