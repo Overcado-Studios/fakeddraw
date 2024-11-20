@@ -24,18 +24,20 @@ unsigned int createARGBdword(int r, int g, int b, int a)
 
 unsigned int createARGBshort(int r, int g, int b, int a)
 {
-    return (((a & 0xf) << 4) + ((r & 0xf) << 3) + ((g & 0xf) << 2) + (b & 0xf));
+    return (((a & 0xf) << 16) + ((r & 0xf) << 8) + ((g & 0xf) << 4) + (b & 0xf));
 }
 
-float4 PerformColorPalette(float4 col)
+float4 PerformColorPalette(float4 srcColor)
 {    
     // 8bit
     if (PALETTE_STATE != 0)
     {
-        return paletteColors[ceil(saturate(length(col)) * 255)];
+        unsigned int dwordColor = createARGBdword(floor(srcColor.r * 255), floor(srcColor.g * 255), floor(srcColor.b * 255), floor(srcColor.a * 255));
+
+        return float4(paletteColors[dwordColor & 0xff].rgb, 1);
     }
     
-    return float4(1, 1, 1, 1);
+    return srcColor;
 }
 
 #endif
