@@ -65,7 +65,7 @@ struct DDrawSurfacePrivate
 	DDCOLORKEY		colorKeys[COLORKEY_COUNT];
 
 	DDrawPalettePrivate* pSurfPalette;
-	DDrawSurfacePrivate* pAttachedSurface = nullptr;
+	DDrawSurfacePrivate* pAttachedSurface = nullptr;	// TODO: handle multiple attachments?
 
 	IDirectDrawSurfaceFake* pInterface;
 };
@@ -746,7 +746,12 @@ HRESULT WINAPI IDirectDrawSurfaceFake::DeleteAttachedSurface( DWORD dwFlags, IDi
 
 HRESULT WINAPI IDirectDrawSurfaceFake_DeleteAttachedSurface( IDirectDrawSurfaceFake* This, DWORD dwFlags, IDirectDrawSurfaceFake* lpDDSAttachedSurface )
 {
-	LOGUNIMPL_F;
+	// This assumes that the surface is already created and initialized.
+	if (!lpDDSAttachedSurface)
+		return E_INVALIDARG;
+
+	// detatch the attached surface.
+	ACCESS(DDrawSurfacePrivate)->pAttachedSurface = nullptr;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::EnumAttachedSurfaces( LPVOID lpContext, LPDDENUMSURFACESCALLBACKFAKE lpEnumSurfacesCallback )
@@ -837,7 +842,8 @@ HRESULT WINAPI IDirectDrawSurfaceFake::GetBltStatus( DWORD dwFlags )
 
 HRESULT WINAPI IDirectDrawSurfaceFake_GetBltStatus( IDirectDrawSurfaceFake* This, DWORD dwFlags )
 {
-	LOGUNIMPL_F;
+	// we should be able to always do a bitblt
+	return DD_OK;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::GetCaps( LPDDSCAPS2 lpDDSCaps )
@@ -919,7 +925,8 @@ HRESULT WINAPI IDirectDrawSurfaceFake::GetDDInterface( LPVOID FAR *lplpDD )
 
 HRESULT WINAPI IDirectDrawSurfaceFake_GetDDInterface( IDirectDrawSurfaceFake* This, LPVOID FAR *lplpDD )
 {
-	LOGUNIMPL_F;
+	lplpDD = (LPVOID FAR * )ACCESS(DDrawSurfacePrivate)->pParentDDrawContext;
+	return S_OK;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::GetFlipStatus( DWORD dwFlags )
@@ -929,7 +936,8 @@ HRESULT WINAPI IDirectDrawSurfaceFake::GetFlipStatus( DWORD dwFlags )
 
 HRESULT WINAPI IDirectDrawSurfaceFake_GetFlipStatus( IDirectDrawSurfaceFake* This, DWORD dwFlags )
 {
-	LOGUNIMPL_F;
+	// we should be able to always do a flip
+	return DD_OK;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::GetLOD( LPDWORD lpdwLOD )

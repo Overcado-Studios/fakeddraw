@@ -1617,7 +1617,11 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* srcSurface, D3D11Surf
 HRESULT D3D11SurfaceFunc_UpdateOverlay(D3D11* d3d, D3D11Surface* srcSurface, D3D11Surface* dstSurface, LPRECT lpDestRect, LPRECT lpSrcRect, DWORD dwTrans, LPDDCOLORKEY srcColorKey, LPDDCOLORKEY dstColorKey)
 {
 	D3D11Func_SetRenderTarget(d3d, &dstSurface);
-	D3D11Func_ClearRT(d3d, 0xffffffff);
+	D3D11Func_ClearRT(d3d, 0xff00ffff);
+
+	// Test
+	D3D11SurfaceFunc_BltFast(d3d, srcSurface, dstSurface, lpDestRect, lpSrcRect, dwTrans, srcColorKey, dstColorKey);
+
 	return S_OK;
 }
 
