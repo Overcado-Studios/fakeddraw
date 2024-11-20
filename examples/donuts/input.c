@@ -281,35 +281,36 @@ BOOL InitInput(HINSTANCE hInst, HWND hWnd)
 {
    LPDIRECTINPUT pdi;
    BOOL fRc;
-
+   /*
    // Note: Joystick support is a DirectX 5.0 feature.
    // Since we also want to run on DirectX 3.0, we will start out
    // with DirectX 3.0 to make sure that at least we get the keyboard.
 
    // create the DirectInput interface object
-   if(DirectInputCreate(hInst, 0x0300, &pdi, NULL) != DI_OK)
-   {
-      OutputDebugString("DirectInputCreate 3.0 FAILED\n");
-      return FALSE;
-   }
+  // if(DirectInputCreate(hInst, DIRECTINPUT_VERSION, &pdi, NULL) != DI_OK)
+   //{
+   //   OutputDebugString("DirectInputCreate 3.0 FAILED\n");
+   //   return FALSE;
+   //}
 
-   fRc = InitKeyboardInput(pdi);
-   pdi->lpVtbl->Release(pdi);       // Finished with DX 3.0
-
-   if (!fRc) {
-      return FALSE;
-   }
+ 
 
    // create the DirectInput 5.0 interface object
-   if(DirectInputCreate(hInst, DIRECTINPUT_VERSION, &pdi, NULL) == DI_OK)
+  //if(DirectInputCreate(hInst, DIRECTINPUT_VERSION, &pdi, NULL) == DI_OK)
    {
 
       //
       // Enumerate the joystick devices.  If it doesn't work, oh well,
       // at least we got the keyboard.
       //
+       fRc = InitKeyboardInput(pdi);
+       pdi->lpVtbl->Release(pdi);       // Finished with DX 3.0
 
-      pdi->lpVtbl->EnumDevices(pdi, DIDEVTYPE_JOYSTICK,
+       if (!fRc) {
+           return FALSE;
+       }
+
+      pdi->lpVtbl->EnumDevices(pdi, 0,
                                InitJoystickInput, pdi, DIEDFL_ATTACHEDONLY);
 
       pdi->lpVtbl->Release(pdi);    // Finished with DX 5.0.
@@ -320,7 +321,7 @@ BOOL InitInput(HINSTANCE hInst, HWND hWnd)
 
    // Default device is the keyboard
    PickInputDevice(0);
-
+   */
    // if we get here, we were successful
    return TRUE;
 }

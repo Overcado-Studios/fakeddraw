@@ -117,7 +117,7 @@ void AppPause(void)
 void AppUnpause(void)
 {
     iForceErase = 2;
-    lastTickCount = dwFrameTime = timeGetTime();
+    lastTickCount = dwFrameTime = 0;// timeGetTime();
 }
 
 /*
@@ -206,7 +206,7 @@ long FAR PASCAL MainWndproc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
         if( bShowFrameCount )
         {
             dwFrameCount = 0;
-            dwFrameTime = timeGetTime();
+            dwFrameTime = 0.1;// timeGetTime();
         }
         break;
         
@@ -398,7 +398,7 @@ long FAR PASCAL MainWndproc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
           return FALSE;
       }
       
-      dwFrameTime = timeGetTime();
+      dwFrameTime = 0.1;// timeGetTime();
       
       while( 1 )
       {
@@ -1222,11 +1222,11 @@ void DisplayFrameRate( void )
     char                buff[256];
     
     dwFrameCount++;
-    time2 = timeGetTime() - dwFrameTime;
+    time2 = 0.1 - dwFrameTime;
     if( time2 > 1000 )
     {
         dwFrames = (dwFrameCount*1000)/time2;
-        dwFrameTime = timeGetTime();
+        dwFrameTime = 0.1;// timeGetTime();
         dwFrameCount = 0;
     }
     if( dwFrames == 0 )
