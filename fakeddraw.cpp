@@ -50,6 +50,8 @@ struct DDrawPalettePrivate
 	PALETTEENTRY                paletteEntries[256];
 
 	D3D11* pParentD3DContext;
+	IDirectDrawFake* pParentDDrawContext;
+
 	D3D11Palette* pPalette;
 };
 
@@ -58,11 +60,14 @@ struct DDrawSurfacePrivate
 	ULONG RefCount;
 	D3D11Surface* pSurface;
 	D3D11* pParentD3DContext;
+	IDirectDrawFake* pParentDDrawContext;
 	DDSURFACEDESC2 ddsd;
 	DDCOLORKEY		colorKeys[COLORKEY_COUNT];
 
 	DDrawPalettePrivate* pSurfPalette;
 	DDrawSurfacePrivate* pAttachedSurface = nullptr;
+
+	IDirectDrawSurfaceFake* pInterface;
 };
 
 struct DDrawClipperPrivate
@@ -220,6 +225,7 @@ HRESULT WINAPI IDirectDrawFake_CreatePalette( IDirectDrawFake* This, DWORD dwFla
 		return hr;
 
 	_ACCESS(DDrawPalettePrivate, (*lplpDDPalette))->pParentD3DContext = ACCESS(DDrawPrivate)->pD3DContext;
+	_ACCESS(DDrawPalettePrivate, (*lplpDDPalette))->pParentDDrawContext = This;
 	_ACCESS(DDrawPalettePrivate, (*lplpDDPalette))->dwFlags = dwFlags;
 	_ACCESS(DDrawPalettePrivate, (*lplpDDPalette))->RefCount = 1;
 
@@ -281,8 +287,32 @@ HRESULT WINAPI IDirectDrawFake_CreateSurface( IDirectDrawFake* This, LPDDSURFACE
 		return hr;
 
 	_ACCESS(DDrawSurfacePrivate, (*lplpDDSurface))->pParentD3DContext = ACCESS(DDrawPrivate)->pD3DContext;
+	_ACCESS(DDrawSurfacePrivate, (*lplpDDSurface))->pInterface = *lplpDDSurface;
+	_ACCESS(DDrawSurfacePrivate, (*lplpDDSurface))->pParentDDrawContext = This;
 	_ACCESS(DDrawSurfacePrivate, (*lplpDDSurface))->RefCount = 1;
 	_ACCESS(DDrawSurfacePrivate, (*lplpDDSurface))->ddsd = *lpDDSurfaceDesc2;
+
+	if (lpDDSurfaceDesc2->dwFlags & DDSD_CAPS)
+	{
+		// we always need a backbuffer even if we didnt call GetAttachedSurface
+		if (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
+		{
+			DDSURFACEDESC2 ddsd;
+			ZeroMemory(&ddsd, sizeof(DDSURFACEDESC2));
+			ddsd.dwFlags = DDSD_CAPS;
+			ddsd.ddsCaps.dwCaps = DDSCAPS_BACKBUFFER;
+
+			IDirectDrawSurfaceFake* lplpDDSurface2 = nullptr;
+
+			hr = IDirectDrawFake_CreateSurface(This, &ddsd, &lplpDDSurface2, nullptr);
+			if (FAILED(hr))
+				return hr;
+
+			hr = IDirectDrawSurfaceFake_AddAttachedSurface(*lplpDDSurface, lplpDDSurface2);
+			if (FAILED(hr))
+				return hr;
+		}
+	}
 
 	return DD_OK;
 }
@@ -587,7 +617,18 @@ HRESULT WINAPI IDirectDrawSurfaceFake::AddAttachedSurface( IDirectDrawSurfaceFak
 
 HRESULT WINAPI IDirectDrawSurfaceFake_AddAttachedSurface( IDirectDrawSurfaceFake* This, IDirectDrawSurfaceFake* lpDDSAttachedSurface )
 {
-	LOGUNIMPL(DD_OK);
+	GUARD(This, E_FAIL);
+
+	// This assumes that the surface is already created and initialized.
+	if (!lpDDSAttachedSurface)
+		return E_INVALIDARG;
+
+	// attach the created surface to this surface to reference state stuff. 
+	// ex. if attached surface is the backbuffer we need to apply to that palette changes to the
+	// front buffer since we cannot access front buffer on D3D11 easily.
+	ACCESS(DDrawSurfacePrivate)->pAttachedSurface = _ACCESS(DDrawSurfacePrivate, (lpDDSAttachedSurface));
+
+	return DD_OK;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::AddOverlayDirtyRect( LPRECT lpRect )
@@ -758,46 +799,35 @@ HRESULT WINAPI IDirectDrawSurfaceFake::GetAttachedSurface( LPDDSCAPS2 lpDDSCaps,
 HRESULT WINAPI IDirectDrawSurfaceFake_GetAttachedSurface( IDirectDrawSurfaceFake* This, LPDDSCAPS2 lpDDSCaps, IDirectDrawSurfaceFake* FAR *lplpDDAttachedSurface )
 {
 	GUARD( This, E_FAIL );
+	HRESULT hr;
 
-	/* Sanity check */
-	if( !lplpDDAttachedSurface )
-		return E_INVALIDARG;
+	// create the surface if not existing
+	if (!ACCESS(DDrawSurfacePrivate)->pAttachedSurface)
+	{
+		DDSURFACEDESC2 ddsd;
+		ZeroMemory(&ddsd, sizeof(DDSURFACEDESC2));
+		ddsd.dwFlags = DDSD_CAPS;
+		memmove(&ddsd.ddsCaps, lpDDSCaps, sizeof(DDSCAPS2));
 
-	/* TODO: Actually use GUIDs */
+		hr = IDirectDrawFake_CreateSurface(ACCESS(DDrawSurfacePrivate)->pParentDDrawContext, &ddsd, lplpDDAttachedSurface, nullptr);
+		if (FAILED(hr))
+			return hr;
 
-	/* Allocate fake DirectDraw interface and initialize Vtable for C */
-	(*lplpDDAttachedSurface ) = new IDirectDrawSurfaceFake;
-	if( !(*lplpDDAttachedSurface ) )
-		return E_OUTOFMEMORY;
+		// attach this surface to the parent
+		if (lplpDDAttachedSurface)
+		{
+			hr = IDirectDrawSurfaceFake_AddAttachedSurface(This, *lplpDDAttachedSurface);
+			if (FAILED(hr))
+				return hr;
+		}
+	}
+	else
+	{
+		*lplpDDAttachedSurface = ACCESS(DDrawSurfacePrivate)->pAttachedSurface->pInterface;
+		return S_OK;
+	}
 
-	if( !DDrawSurfaceVtableCreate( lplpDDAttachedSurface ) )
-		return E_OUTOFMEMORY;
-
-	(*lplpDDAttachedSurface)->reserved = new DDrawSurfacePrivate;
-	if( !(*lplpDDAttachedSurface)->reserved )
-		return E_OUTOFMEMORY;
-
-	memset( (*lplpDDAttachedSurface)->reserved, 0, sizeof( DDrawSurfacePrivate ) );
-
-	DDSURFACEDESC2 ddsd;
-	ZeroMemory( &ddsd, sizeof( DDSURFACEDESC2 ) );
-	ddsd.dwFlags = DDSD_CAPS;
-	memmove( &ddsd.ddsCaps, lpDDSCaps, sizeof( DDSCAPS2 ) );
-
-	HRESULT hr = D3D11Func_CreateSurface( ACCESS(DDrawSurfacePrivate)->pParentD3DContext, &_ACCESS(DDrawSurfacePrivate, (*lplpDDAttachedSurface))->pSurface, &ddsd );
-	if( FAILED( hr ) )
-		return hr;
-
-	_ACCESS(DDrawSurfacePrivate, (*lplpDDAttachedSurface))->pParentD3DContext = ACCESS(DDrawSurfacePrivate)->pParentD3DContext;
-	_ACCESS(DDrawSurfacePrivate, (*lplpDDAttachedSurface))->RefCount = 1;
-	_ACCESS(DDrawSurfacePrivate, (*lplpDDAttachedSurface))->ddsd = ddsd;
-
-	// attach the created surface to this surface to reference state stuff. 
-	// ex. if attached surface is the backbuffer we need to apply to that palette changes to the
-	// front buffer since we cannot access front buffer on D3D11 easily.
-	ACCESS(DDrawSurfacePrivate)->pAttachedSurface = _ACCESS(DDrawSurfacePrivate, (*lplpDDAttachedSurface));
-
-	return DD_OK;
+	return S_OK;
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::GetBltStatus( DWORD dwFlags )
@@ -941,11 +971,7 @@ HRESULT WINAPI IDirectDrawSurfaceFake_GetPalette( IDirectDrawSurfaceFake* This, 
 	}
 
 	D3D11* d3d = surf->pParentD3DContext;
-
-	// set this surface's palette to the parameter
-	
-
-	//_ACCESS(DDrawPalettePrivate, (*lplpDDPalette)) = ACCESS(DDrawSurfacePrivate)->pSurfPalette;
+	memcpy(_ACCESS(DDrawPalettePrivate, *lplpDDPalette), surf->pSurfPalette, sizeof(surf->pSurfPalette));
 	return S_OK;
 }
 
@@ -1281,29 +1307,26 @@ HRESULT WINAPI IDirectDrawSurfaceFake_UpdateOverlay( IDirectDrawSurfaceFake* Thi
 	DDrawSurfacePrivate* dstSurf = _ACCESS(DDrawSurfacePrivate, lpDDDestSurface); 
 	DDrawSurfacePrivate* srcSurf = ACCESS(DDrawSurfacePrivate);
 
-	if (ACCESS(DDrawSurfacePrivate)->pAttachedSurface)
+	if (dstSurf->pAttachedSurface)
 	{
 		// if we have an attached surface to this surface, it might be the front buffer. 
 		// since we cant access the front buffer easily on D3D11, we need to set the state to the back
 		// buffer instead.
 
-		srcSurf = ACCESS(DDrawSurfacePrivate)->pAttachedSurface;
+		dstSurf = dstSurf->pAttachedSurface;
 	}
 
 	D3D11* d3d = dstSurf->pParentD3DContext;
-	D3D11Func_SetRenderTarget(d3d, &dstSurf->pSurface);
-
-	DDSURFACEDESC2 ddsd = srcSurf->ddsd;
-
-
 	D3D11Surface* srcSurface = srcSurf->pSurface;
 	D3D11Surface* dstSurface = dstSurf->pSurface;
 
+	D3D11Func_SetRenderTarget(d3d, &dstSurface);
+
+	// TODO: populate?
 	LPDDCOLORKEY srcColorKey = nullptr;
 	LPDDCOLORKEY dstColorKey = nullptr;
 
-
-	return D3D11SurfaceFunc_BltFast(d3d, srcSurface, dstSurface, lpDestRect, lpSrcRect, 0, srcColorKey, dstColorKey);
+	return D3D11SurfaceFunc_UpdateOverlay(d3d, srcSurface, dstSurface, lpDestRect, lpSrcRect, 0, srcColorKey, dstColorKey);
 }
 
 HRESULT WINAPI IDirectDrawSurfaceFake::UpdateOverlayDisplay( DWORD dwFlags )

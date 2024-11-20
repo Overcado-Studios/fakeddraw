@@ -44,6 +44,8 @@ HRESULT D3D11SurfaceFunc_ReleaseDC( D3D11Surface* surface, HDC* pDC );
 HRESULT D3D11SurfaceFunc_GetParentContext( D3D11Surface*, D3D11** ppd3d );
 HRESULT D3D11SurfaceFunc_Blt( D3D11* d3d, D3D11Surface* srcSurface, D3D11Surface* dstSurface, LPRECT lpDestRect, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx );
 HRESULT D3D11SurfaceFunc_BltFast( D3D11* d3d, D3D11Surface* srcSurface, D3D11Surface* dstSurface, LPRECT lpDestRect, LPRECT lpSrcRect, DWORD dwTrans, LPDDCOLORKEY srcColorKey, LPDDCOLORKEY dstColorKey);
+HRESULT D3D11SurfaceFunc_UpdateOverlay(D3D11* d3d, D3D11Surface* srcSurface, D3D11Surface* dstSurface, LPRECT lpDestRect, LPRECT lpSrcRect, DWORD dwTrans, LPDDCOLORKEY srcColorKey, LPDDCOLORKEY dstColorKey);
+
 HRESULT D3D11SurfaceFunc_SetPalette( D3D11* d3d, D3D11Surface** surf, D3D11Palette* pal);
 
 HRESULT D3D11PaletteFunc_Initialize(D3D11* d3d, D3D11Palette* pal, LPPALETTEENTRY lpDDColorArray, DWORD dwFlags);

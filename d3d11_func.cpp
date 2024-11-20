@@ -1614,6 +1614,13 @@ HRESULT D3D11SurfaceFunc_BltFast(D3D11* d3d, D3D11Surface* srcSurface, D3D11Surf
 	return S_OK;
 }
 
+HRESULT D3D11SurfaceFunc_UpdateOverlay(D3D11* d3d, D3D11Surface* srcSurface, D3D11Surface* dstSurface, LPRECT lpDestRect, LPRECT lpSrcRect, DWORD dwTrans, LPDDCOLORKEY srcColorKey, LPDDCOLORKEY dstColorKey)
+{
+	D3D11Func_SetRenderTarget(d3d, &dstSurface);
+	D3D11Func_ClearRT(d3d, 0xffffffff);
+	return S_OK;
+}
+
 HRESULT D3D11SurfaceFunc_SetPalette(D3D11* d3d, D3D11Surface** surf, D3D11Palette* pal)
 {
 	(*surf)->palette = pal;
