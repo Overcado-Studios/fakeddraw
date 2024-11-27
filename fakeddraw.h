@@ -11,6 +11,7 @@
 #define __FAKE_DDRAW_INCLUDED__
 
 #include <windows.h>
+#include <ddraw.h>
 
 #include "fakecom.h"
 
